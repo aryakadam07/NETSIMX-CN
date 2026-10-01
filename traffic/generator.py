@@ -1,9 +1,10 @@
 """
 NetSimX — Traffic Generator (Member 3)
 Produces simulated streams of Packet instances matching flow parameters.
+Supports single-flow bursts, multi-flow interleaving, and presets.
 """
 
-from typing import List
+from typing import List, Tuple
 from core.packet import Packet, ProtocolType, PacketStatus
 from traffic.flow import FlowConfig
 from config.settings import TRAFFIC_PRESETS, SIM_DEFAULTS
@@ -40,6 +41,21 @@ class TrafficGenerator:
             packets.append(pkt)
 
         return packets
+
+    @classmethod
+    def generate_multi_flow(cls, flow_definitions: List[Tuple[FlowConfig, List[str]]]) -> List[Packet]:
+        """
+        Generates packets across multiple concurrent flows and interleaves them
+        chronologically by creation timestamp to model realistic multi-source traffic.
+        """
+        all_packets: List[Packet] = []
+        for config, route in flow_definitions:
+            flow_pkts = cls.generate_flow(config, route)
+            all_packets.extend(flow_pkts)
+
+        # Sort all packets across all flows by creation time
+        all_packets.sort(key=lambda p: p.created_time_ms)
+        return all_packets
 
     @classmethod
     def generate_preset(

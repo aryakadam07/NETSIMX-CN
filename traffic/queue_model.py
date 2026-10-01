@@ -1,17 +1,27 @@
 """
 NetSimX — Drop-Tail FIFO Queuing & Congestion Model (Member 3)
-Simulates an egress interface buffer with finite capacity and Drop-Tail overflow.
+Simulates an egress interface buffer with finite capacity, time-series depth sampling,
+and real-time link utilization tracking.
 """
 
 from collections import deque
-from typing import Optional, Deque
+from dataclasses import dataclass
+from typing import Optional, Deque, List, Tuple
 from core.packet import Packet, PacketStatus, DropReason
+
+
+@dataclass
+class QueueSample:
+    """Historical telemetry record of queue depth and utilization at a specific timestamp."""
+    timestamp_ms: float
+    depth_packets: int
+    utilization_percent: float
 
 
 class DropTailQueue:
     """
     Finite-buffer Drop-Tail FIFO queue modeling a router egress interface buffer.
-    When current occupancy reaches max_size_packets, subsequent packets are dropped.
+    Maintains time-series telemetry for plotting Queue Depth vs Time and Utilization vs Time.
     """
 
     def __init__(self, interface_id: str, max_size_packets: int = 50, bandwidth_mbps: float = 100.0):
@@ -24,6 +34,10 @@ class DropTailQueue:
         self.total_enqueued: int = 0
         self.total_dequeued: int = 0
         self.total_dropped: int = 0
+        self.bytes_transmitted_interval: int = 0
+
+        # Time-series history for graphing (Member 4)
+        self.history: List[QueueSample] = []
 
     @property
     def current_depth(self) -> int:
@@ -41,8 +55,8 @@ class DropTailQueue:
         return len(self._buffer) == 0
 
     @property
-    def utilization_percent(self) -> float:
-        """Returns buffer capacity utilization percentage."""
+    def buffer_utilization_percent(self) -> float:
+        """Returns buffer capacity utilization percentage (depth / max_size * 100)."""
         if self.max_size_packets <= 0:
             return 0.0
         return (len(self._buffer) / self.max_size_packets) * 100.0
@@ -80,9 +94,33 @@ class DropTailQueue:
             return None
         packet = self._buffer.popleft()
         self.total_dequeued += 1
+        self.bytes_transmitted_interval += packet.size_bytes
         return packet
 
-    def clear(self) -> list[Packet]:
+    def record_tick_sample(self, timestamp_ms: float, interval_ms: float) -> QueueSample:
+        """
+        Calculates bandwidth channel utilization over interval_ms, records
+        a QueueSample in history, and resets interval byte counter:
+        Utilization = (bytes_transmitted * 8) / (bandwidth_mbps * 10^6 * (interval_ms / 1000)) * 100%
+        """
+        if self.bandwidth_mbps > 0 and interval_ms > 0:
+            max_possible_bits = self.bandwidth_mbps * 1_000_000.0 * (interval_ms / 1000.0)
+            actual_bits = self.bytes_transmitted_interval * 8.0
+            channel_utilization = min(100.0, (actual_bits / max_possible_bits) * 100.0)
+        else:
+            channel_utilization = 0.0
+
+        sample = QueueSample(
+            timestamp_ms=timestamp_ms,
+            depth_packets=len(self._buffer),
+            utilization_percent=channel_utilization
+        )
+        self.history.append(sample)
+        # Reset interval counter for next tick
+        self.bytes_transmitted_interval = 0
+        return sample
+
+    def clear(self) -> List[Packet]:
         """Clears all packets from the buffer (used during node failure / reset)."""
         purged = list(self._buffer)
         self._buffer.clear()
