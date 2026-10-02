@@ -1,13 +1,15 @@
 """
 NetSimX — Discrete-Event Simulation Engine (Member 3)
-Drives hop-by-hop packet forwarding, delay accumulation, queuing, and drop mechanics.
+Drives hop-by-hop packet forwarding, delay accumulation, queuing, scheduled events,
+and real-time telemetry snapshots.
 """
 
 import random
 from typing import List, Dict, Optional, Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from core.network import NetworkTopology
 from core.packet import Packet, PacketStatus, DropReason
+from core.event_manager import EventManager, ScheduledEvent
 from traffic.queue_model import DropTailQueue
 
 
@@ -49,18 +51,35 @@ class SimulationStats:
         return self.total_hops / self.packets_delivered
 
 
+@dataclass
+class SimulationTickSnapshot:
+    """Telemetry data emitted at every discrete simulation clock tick for the GUI / Dashboard."""
+    timestamp_ms: float
+    active_packets_count: int
+    packets_delivered: int
+    packets_dropped: int
+    pdr_percent: float
+    average_delay_ms: float
+    executed_events: List[str] = field(default_factory=list)
+    queue_depths: Dict[str, int] = field(default_factory=dict)
+
+
 class SimulationEngine:
     """
     Coordinates packet traversal across the network topology.
-    Models interface buffers, link delays, drop conditions, and in-flight rerouting.
+    Models interface buffers, link delays, drop conditions, scheduled timeline events,
+    and in-flight rerouting.
     """
 
-    def __init__(self, network: NetworkTopology):
+    def __init__(self, network: NetworkTopology, event_manager: Optional[EventManager] = None):
         self.network = network
+        self.event_manager = event_manager
         self.packets: List[Packet] = []
         self.interface_queues: Dict[str, DropTailQueue] = {}
         self.stats = SimulationStats()
+        self.current_time_ms: float = 0.0
         self.on_route_failed: Optional[Callable[[Packet, str], Optional[List[str]]]] = None
+        self.on_tick_listeners: List[Callable[[SimulationTickSnapshot], None]] = []
 
         self._initialize_queues()
 
@@ -77,6 +96,10 @@ class SimulationEngine:
         """Loads a burst of packets to be processed in the simulation."""
         self.packets.extend(packets)
         self.stats.packets_sent += len(packets)
+
+    def register_tick_listener(self, callback: Callable[[SimulationTickSnapshot], None]) -> None:
+        """Subscribes a listener (e.g. GUI canvas or logger) to clock tick updates."""
+        self.on_tick_listeners.append(callback)
 
     def step_packet(self, packet: Packet) -> bool:
         """
@@ -136,11 +159,9 @@ class SimulationEngine:
         # 5. Interface Queue & Congestion Check (Drop-Tail Buffer)
         queue = self.interface_queues.get(link.link_id)
         if queue:
-            # Calculate queuing delay before enqueuing
             queuing_delay = queue.calculate_current_queuing_delay_ms()
             enqueued = queue.enqueue(packet, current_node_id)
             if not enqueued:
-                # Buffer overflow! Packet was marked dropped by DropTailQueue
                 self.stats.packets_dropped += 1
                 return False
             # Immediate dequeue for forward step progression in discrete step
@@ -165,16 +186,62 @@ class SimulationEngine:
 
         return still_in_transit
 
-    def run_all(self, max_steps: int = 1000) -> SimulationStats:
+    def step_clock(self, delta_t_ms: float = 50.0) -> SimulationTickSnapshot:
+        """
+        Advances simulation time by delta_t_ms:
+        1. Executes scheduled timeline events due at this timestamp.
+        2. Advances in-transit packets.
+        3. Samples queue depths.
+        4. Emits snapshot to listeners.
+        """
+        self.current_time_ms += delta_t_ms
+
+        # 1. Process Timeline Events
+        executed_events: List[str] = []
+        if self.event_manager:
+            fired = self.event_manager.process_due_events(self.current_time_ms)
+            executed_events = [f"{e.event_type.value}:{e.target_id}" for e in fired]
+
+        # 2. Advance active packets that have been created by current_time_ms
+        active_packets = [
+            p for p in self.packets
+            if p.is_active and p.created_time_ms <= self.current_time_ms
+        ]
+        for packet in active_packets:
+            self.step_packet(packet)
+
+        # 3. Sample Queue Depths & Utilization
+        queue_depths = {}
+        for link_id, q in self.interface_queues.items():
+            q.record_tick_sample(self.current_time_ms, delta_t_ms)
+            queue_depths[link_id] = q.current_depth
+
+        # 4. Generate Snapshot
+        snapshot = SimulationTickSnapshot(
+            timestamp_ms=self.current_time_ms,
+            active_packets_count=len([p for p in self.packets if p.is_active]),
+            packets_delivered=self.stats.packets_delivered,
+            packets_dropped=self.stats.packets_dropped,
+            pdr_percent=self.stats.pdr_percent,
+            average_delay_ms=self.stats.average_delay_ms,
+            executed_events=executed_events,
+            queue_depths=queue_depths
+        )
+
+        for listener in self.on_tick_listeners:
+            listener(snapshot)
+
+        return snapshot
+
+    def run_all(self, max_steps: int = 1000, tick_interval_ms: float = 50.0) -> SimulationStats:
         """
         Runs the simulation loop until all loaded packets are either
         DELIVERED or DROPPED, or max_steps is reached.
         """
         for _ in range(max_steps):
-            active_packets = [p for p in self.packets if p.is_active]
-            if not active_packets:
+            active = [p for p in self.packets if p.is_active]
+            if not active and (not self.event_manager or not self.event_manager.get_pending_events()):
                 break
-            for packet in active_packets:
-                self.step_packet(packet)
+            self.step_clock(tick_interval_ms)
 
         return self.stats
