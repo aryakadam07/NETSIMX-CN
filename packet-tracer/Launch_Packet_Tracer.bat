@@ -1,0 +1,3 @@
+@echo off
+echo Opening Cisco Packet Tracer 8.2.2...
+start "" "D:\Cisco Packet Tracer 8.2.2\bin\PacketTracer.exe"
