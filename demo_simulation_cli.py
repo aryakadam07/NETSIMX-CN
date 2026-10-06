@@ -86,18 +86,19 @@ def main():
     )
     print()
 
-    # 3. Dynamic Rerouting Callback Hook
+    # 3. Dynamic Rerouting Callback Hook using Member 2 RoutingEngine
+    from routing.routing_engine import RoutingEngine
+    routing_engine = RoutingEngine(default_algorithm="Dijkstra")
     first_rerouted_packet = [True]
 
     def dynamic_reroute(packet: Packet, current_node: str):
-        if current_node == "R1":
-            # Recalculated sub-path avoiding R2
-            new_path = ["R1", "R3", "R4", "Server1"]
+        res = routing_engine.find_path(net, current_node, packet.destination_id, algorithm="Dijkstra")
+        if res.is_reachable and len(res.path) > 0:
             if first_rerouted_packet[0]:
                 print(f"      [DYNAMIC REROUTE] Packet {packet.packet_id} at {current_node}: severed link detected!")
-                print(f"      [AUTONOMOUS FAILOVER] Recalculated alternate sub-path: {' -> '.join(new_path)}")
+                print(f"      [MEMBER 2 ROUTING ENGINE] Recalculated shortest path via {res.algorithm}: {' -> '.join(res.path)} (Cost: {res.total_cost:.1f})")
                 first_rerouted_packet[0] = False
-            return new_path
+            return res.path
         return None
 
     sim_engine.on_route_failed = dynamic_reroute
