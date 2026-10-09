@@ -4,11 +4,13 @@ Wraps Member 3's FailureManager for GUI use.
 """
 
 import logging
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 
 from failures.failure_manager import FailureManager
 from .topology_adapter import TopologyAdapter
-from .simulation_adapter import SimulationAdapter
+
+if TYPE_CHECKING:
+    from .simulation_adapter import SimulationAdapter
 
 logger = logging.getLogger("FailureAdapter")
 
@@ -21,7 +23,7 @@ class FailureAdapter:
     """
 
     def __init__(self, topology_adapter: TopologyAdapter,
-                 simulation_adapter: Optional[SimulationAdapter] = None):
+                 simulation_adapter: Optional['SimulationAdapter'] = None):
         self._topo = topology_adapter
         self._sim = simulation_adapter
         self._standalone_fm: Optional[FailureManager] = None
@@ -29,7 +31,7 @@ class FailureAdapter:
     def _get_fm(self) -> FailureManager:
         """Returns the active FailureManager (from sim if running, else standalone)."""
         if self._sim is not None:
-            fm = self._sim.get_failure_manager()
+            fm = getattr(self._sim, "get_failure_manager", lambda: None)()
             if fm is not None:
                 return fm
         if self._standalone_fm is None:
@@ -96,6 +98,6 @@ class FailureAdapter:
 
     def _current_time(self) -> float:
         """Returns simulation clock time if running, else 0."""
-        if self._sim and self._sim._engine:
+        if self._sim and hasattr(self._sim, "_engine") and self._sim._engine:
             return self._sim._engine.current_time_ms
         return 0.0

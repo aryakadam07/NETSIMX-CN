@@ -1,6 +1,7 @@
 """
-NetSimX — Topology Layout Helper (Member 4)
+NetSimX — Topology Layout Helper (Member 4 / Redesign)
 Uses NetworkX to compute node positions for rendering in QGraphicsScene.
+Updated with non-blue charcoal & emerald node/link color palette.
 """
 
 from typing import Dict, Tuple, List, Optional, Any
@@ -16,32 +17,29 @@ class TopologyVisualizer:
     """
 
     # Visual constants
-    CANVAS_W = 900
-    CANVAS_H = 550
+    CANVAS_W = 920
+    CANVAS_H = 560
     NODE_RADIUS = 24
     MARGIN = 60
 
-    # Node type colours (hex strings)
+    # Node type colors (No blue - dark & emerald palette)
     NODE_COLORS = {
-        "ROUTER": "#4A90D9",
-        "SWITCH": "#7B68EE",
-        "PC":     "#5CB85C",
-        "SERVER": "#E8A838",
+        "ROUTER": "#B8E986",  # Muted Emerald Green
+        "SWITCH": "#E9A15B",  # Warm Orange
+        "PC":     "#F59E0B",  # Amber Gold
+        "SERVER": "#34D399",  # Soft Teal
     }
-    NODE_DOWN_COLOR = "#CC3333"
-    LINK_COLOR = "#888888"
-    LINK_DOWN_COLOR = "#CC3333"
-    PATH_COLOR = "#00CC66"
+    NODE_DOWN_COLOR = "#EF4444"
+    LINK_COLOR = "#555555"
+    LINK_DOWN_COLOR = "#EF4444"
+    PATH_COLOR = "#B8E986"
 
     @staticmethod
     def compute_positions(nodes: List[Dict[str, Any]],
                           links: List[Dict[str, Any]]) -> Dict[str, Tuple[float, float]]:
         """
         Returns {node_id: (x, y)} scaled to canvas dimensions.
-        Uses NetworkX spring_layout if available, else pre-assigned pos_x/pos_y,
-        else falls back to a circle layout.
         """
-        # Prefer pre-assigned positions from topology if set
         positions: Dict[str, Tuple[float, float]] = {}
         has_positions = all(n.get("pos_x", 0) != 0 or n.get("pos_y", 0) != 0 for n in nodes)
 
@@ -88,7 +86,7 @@ class TopologyVisualizer:
     def node_color(node_type: str, is_up: bool) -> str:
         if not is_up:
             return TopologyVisualizer.NODE_DOWN_COLOR
-        return TopologyVisualizer.NODE_COLORS.get(node_type.upper(), "#888888")
+        return TopologyVisualizer.NODE_COLORS.get(node_type.upper(), "#A5A5A5")
 
     @staticmethod
     def link_color(is_up: bool, in_path: bool) -> str:

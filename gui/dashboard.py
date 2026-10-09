@@ -1,15 +1,20 @@
 """
-NetSimX — Dashboard Panel (Member 4)
-Shows topology stats, live KPI cards, and the alert feed.
+NetSimX — Dashboard Panel (Member 4 / Redesign)
+Shows Welcome Hero banner, network status cards, KPI cards, and live event alerts in charcoal & emerald.
 """
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-    QGroupBox, QScrollArea, QFrame
+    QGroupBox, QScrollArea, QFrame, QPushButton
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
 
+from gui.styles import (
+    MAIN_BG, CARD_BG, CONTAINER_BG, BORDER_COLOR, TEXT_PRIMARY,
+    TEXT_SECONDARY, ACCENT_EMERALD, ACCENT_ORANGE, ACCENT_CORAL,
+    get_groupbox_stylesheet, get_button_stylesheet, get_secondary_button_stylesheet
+)
 from gui.widgets.metric_card import MetricCard
 from gui.widgets.alert_widget import AlertWidget
 from analytics.metrics import MetricsCalculator
@@ -18,13 +23,10 @@ from analytics.metrics import MetricsCalculator
 class DashboardPanel(QWidget):
     """
     Main dashboard panel.
-
-    Layout:
-        [Title]
-        [Network Status Cards row]
-        [Simulation Metrics Cards row]
-        [Alerts area]
+    Displays Hero Header, Network Status Cards, Simulation KPI Cards, State Badge, and Event Alerts.
     """
+
+    open_topology_requested = pyqtSignal()  # Signal to switch to Topology tab
 
     def __init__(self, topology_adapter, simulation_adapter, parent=None):
         super().__init__(parent)
@@ -39,34 +41,51 @@ class DashboardPanel(QWidget):
     # ------------------------------------------------------------------
 
     def _setup_ui(self) -> None:
-        self.setStyleSheet("background: #1A1A2A;")
+        self.setStyleSheet(f"background-color: {MAIN_BG};")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(12)
 
-        # Title
-        title = QLabel("NetSimX — Network Dashboard")
-        tf = QFont()
-        tf.setPointSize(16)
-        tf.setBold(True)
+        # ── 1. Welcome Hero Banner ───────────────────────────────────
+        hero_card = QFrame()
+        hero_card.setStyleSheet(f"""
+            QFrame {{
+                background-color: {CARD_BG};
+                border: 1px solid {BORDER_COLOR};
+                border-radius: 8px;
+            }}
+        """)
+        hero_layout = QHBoxLayout(hero_card)
+        hero_layout.setContentsMargins(16, 14, 16, 14)
+
+        text_v = QVBoxLayout()
+        title = QLabel("NETSIMX — Network Intelligence Studio")
+        tf = QFont(); tf.setPointSize(15); tf.setBold(True)
         title.setFont(tf)
-        title.setStyleSheet("color: #EEEEFF;")
-        layout.addWidget(title)
+        title.setStyleSheet(f"color: {ACCENT_EMERALD}; border: none; background: transparent;")
 
-        sub = QLabel("Computer Networks Simulation & Performance Analysis Platform")
-        sf = QFont()
-        sf.setPointSize(9)
-        sub.setFont(sf)
-        sub.setStyleSheet("color: #7777AA;")
-        layout.addWidget(sub)
+        sub = QLabel("Design networks. Simulate traffic. Analyse performance. Understand failures.")
+        sub.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 11px; border: none; background: transparent;")
 
-        # ── Network status section ───────────────────────────────────
-        net_group = QGroupBox("Network Status")
-        net_group.setStyleSheet(
-            "QGroupBox { color: #AAAACC; border: 1px solid #444466; "
-            "border-radius: 6px; margin-top: 6px; padding-top: 10px; font-size: 10px; }"
-        )
+        text_v.addWidget(title)
+        text_v.addWidget(sub)
+
+        # Primary Action Button: Open Topology Studio
+        self._open_topo_btn = QPushButton("🗺  Open Topology Studio")
+        self._open_topo_btn.setStyleSheet(get_button_stylesheet(ACCENT_EMERALD, "#101010"))
+        self._open_topo_btn.clicked.connect(lambda: self.open_topology_requested.emit())
+
+        hero_layout.addLayout(text_v)
+        hero_layout.addStretch()
+        hero_layout.addWidget(self._open_topo_btn)
+
+        layout.addWidget(hero_card)
+
+        # ── 2. Network Overview Group ─────────────────────────────────
+        net_group = QGroupBox("Network Topology Overview")
+        net_group.setStyleSheet(get_groupbox_stylesheet())
         net_row = QHBoxLayout(net_group)
+        net_row.setContentsMargins(10, 10, 10, 10)
         net_row.setSpacing(8)
 
         self._card_nodes    = MetricCard("Total Nodes",   "—", "")
@@ -85,10 +104,11 @@ class DashboardPanel(QWidget):
         net_row.addStretch()
         layout.addWidget(net_group)
 
-        # ── Simulation metrics section ───────────────────────────────
-        sim_group = QGroupBox("Simulation Metrics")
-        sim_group.setStyleSheet(net_group.styleSheet())
+        # ── 3. Simulation KPI Metrics Group ───────────────────────────
+        sim_group = QGroupBox("Simulation KPI Performance")
+        sim_group.setStyleSheet(get_groupbox_stylesheet())
         sim_row = QHBoxLayout(sim_group)
+        sim_row.setContentsMargins(10, 10, 10, 10)
         sim_row.setSpacing(8)
 
         self._card_sent       = MetricCard("Pkts Sent",   "0", "pkts")
@@ -107,29 +127,32 @@ class DashboardPanel(QWidget):
         sim_row.addStretch()
         layout.addWidget(sim_group)
 
-        # ── Simulation state ─────────────────────────────────────────
+        # ── 4. Empty State Indicator & Simulation State ───────────────
         state_row = QHBoxLayout()
-        state_lbl = QLabel("Simulation State:")
-        state_lbl.setStyleSheet("color: #9999BB; font-size: 10px;")
+        state_lbl = QLabel("Engine Status:")
+        state_lbl.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 11px;")
         self._state_value = QLabel("IDLE")
-        sf2 = QFont()
-        sf2.setBold(True)
-        sf2.setPointSize(10)
+        sf2 = QFont(); sf2.setBold(True); sf2.setPointSize(10)
         self._state_value.setFont(sf2)
-        self._state_value.setStyleSheet("color: #5CB85C;")
+        self._state_value.setStyleSheet(f"color: {TEXT_SECONDARY};")
+
+        self._empty_state_lbl = QLabel(" (No simulation run yet. Click 'Traffic Simulation' to start)")
+        self._empty_state_lbl.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 10px; font-style: italic;")
+
         state_row.addWidget(state_lbl)
         state_row.addWidget(self._state_value)
+        state_row.addWidget(self._empty_state_lbl)
         state_row.addStretch()
         layout.addLayout(state_row)
 
-        # ── Alerts ───────────────────────────────────────────────────
-        alerts_group = QGroupBox("Alerts & Events")
-        alerts_group.setStyleSheet(net_group.styleSheet())
+        # ── 5. Alerts & Activity Log ─────────────────────────────────
+        alerts_group = QGroupBox("System Activity & Event Alerts")
+        alerts_group.setStyleSheet(get_groupbox_stylesheet())
         alerts_layout = QVBoxLayout(alerts_group)
         alerts_layout.setContentsMargins(6, 8, 6, 6)
 
         self._alerts = AlertWidget()
-        self._alerts.setMinimumHeight(160)
+        self._alerts.setMinimumHeight(150)
         alerts_layout.addWidget(self._alerts)
         layout.addWidget(alerts_group)
 
@@ -191,12 +214,16 @@ class DashboardPanel(QWidget):
     def set_simulation_state(self, state: str) -> None:
         self._state_value.setText(state)
         colors = {
-            "IDLE": "#9999BB", "RUNNING": "#5CB85C",
-            "COMPLETED": "#4A90D9", "ERROR": "#CC3333",
+            "IDLE": TEXT_SECONDARY,
+            "RUNNING": ACCENT_EMERALD,
+            "COMPLETED": ACCENT_EMERALD,
+            "ERROR": ACCENT_CORAL,
         }
-        self._state_value.setStyleSheet(
-            f"color: {colors.get(state, '#FFFFFF')};"
-        )
+        self._state_value.setStyleSheet(f"color: {colors.get(state, TEXT_PRIMARY)}; font-weight: bold;")
+        if state in ("RUNNING", "COMPLETED"):
+            self._empty_state_lbl.hide()
+        else:
+            self._empty_state_lbl.show()
 
     def add_alert(self, message: str, level: str = "info") -> None:
         self._alerts.add_alert(message, level)
@@ -208,4 +235,5 @@ class DashboardPanel(QWidget):
         for c in [self._card_pdr, self._card_loss, self._card_throughput,
                   self._card_latency, self._card_jitter]:
             c.update_value("—")
+            c.set_status("normal")
         self._prev_snapshot = None

@@ -1,15 +1,21 @@
 """
-NetSimX — Analytics Panel (Member 4)
-Matplotlib-powered charts for simulation results.
+NetSimX — Analytics Panel (Member 4 / Redesign)
+Matplotlib-powered charts for simulation results in charcoal & emerald styling.
 """
 
 from typing import List, Dict, Any
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QTabWidget, QLabel, QPushButton, QHBoxLayout
 )
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
 from visualization.charts import MatplotlibCanvas
+from gui.styles import (
+    MAIN_BG, CARD_BG, CONTAINER_BG, BORDER_COLOR, TEXT_PRIMARY,
+    TEXT_SECONDARY, ACCENT_EMERALD, ACCENT_ORANGE, ACCENT_CORAL,
+    get_secondary_button_stylesheet
+)
 
 
 class AnalyticsPanel(QWidget):
@@ -29,23 +35,20 @@ class AnalyticsPanel(QWidget):
     # ------------------------------------------------------------------
 
     def _setup_ui(self) -> None:
-        self.setStyleSheet("background: #1A1A2A; color: #CCCCDD;")
+        self.setStyleSheet(f"background-color: {MAIN_BG}; color: {TEXT_PRIMARY};")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(10)
 
-        title = QLabel("Performance Analytics")
+        title = QLabel("Performance Analytics Studio")
         tf = QFont(); tf.setPointSize(14); tf.setBold(True)
-        title.setFont(tf); title.setStyleSheet("color: #EEEEFF;")
+        title.setFont(tf); title.setStyleSheet(f"color: {TEXT_PRIMARY};")
         layout.addWidget(title)
 
         # Refresh button
         btn_row = QHBoxLayout()
         self._refresh_btn = QPushButton("⟳  Refresh Charts")
-        self._refresh_btn.setStyleSheet(
-            "QPushButton { background: #2A4A6A; color: #FFFFFF; border: none; "
-            "border-radius: 4px; padding: 5px 14px; font-size: 10px; }"
-            "QPushButton:hover { background: #3A5A7A; }")
+        self._refresh_btn.setStyleSheet(get_secondary_button_stylesheet())
         self._refresh_btn.clicked.connect(self._refresh_all)
         btn_row.addWidget(self._refresh_btn)
         btn_row.addStretch()
@@ -53,12 +56,13 @@ class AnalyticsPanel(QWidget):
 
         # Tab widget with charts
         self._tabs = QTabWidget()
-        self._tabs.setStyleSheet(
-            "QTabWidget::pane { border: 1px solid #444466; background: #12121E; }"
-            "QTabBar::tab { background: #2A2A3E; color: #9999BB; padding: 6px 14px; "
-            "border-radius: 4px; margin-right: 2px; font-size: 9px; }"
-            "QTabBar::tab:selected { background: #4A4A6E; color: #EEEEFF; }"
-        )
+        self._tabs.setStyleSheet(f"""
+            QTabWidget::pane {{ border: 1px solid {BORDER_COLOR}; background: {CARD_BG}; border-radius: 6px; }}
+            QTabBar::tab {{ background: {CONTAINER_BG}; color: {TEXT_SECONDARY}; padding: 7px 16px;
+                           border-radius: 4px; margin-right: 4px; font-size: 10px; font-weight: bold; }}
+            QTabBar::tab:selected {{ background: {CARD_BG}; color: {ACCENT_EMERALD}; border-bottom: 2px solid {ACCENT_EMERALD}; }}
+            QTabBar::tab:hover {{ color: {TEXT_PRIMARY}; background: #2A2A2A; }}
+        """)
 
         self._canvas_throughput = MatplotlibCanvas()
         self._canvas_latency    = MatplotlibCanvas()
@@ -66,21 +70,21 @@ class AnalyticsPanel(QWidget):
         self._canvas_queue      = MatplotlibCanvas()
         self._canvas_pdr        = MatplotlibCanvas()
 
-        self._tabs.addTab(self._canvas_throughput, "Throughput")
-        self._tabs.addTab(self._canvas_latency,    "Latency")
-        self._tabs.addTab(self._canvas_loss,       "Packet Loss")
-        self._tabs.addTab(self._canvas_pdr,        "PDR")
+        self._tabs.addTab(self._canvas_throughput, "Throughput (Mbps)")
+        self._tabs.addTab(self._canvas_latency,    "Latency (ms)")
+        self._tabs.addTab(self._canvas_loss,       "Packet Loss (%)")
+        self._tabs.addTab(self._canvas_pdr,        "PDR (%)")
         self._tabs.addTab(self._canvas_queue,      "Queue Depth")
 
         layout.addWidget(self._tabs)
 
         # No data label
         self._no_data = QLabel(
-            "No simulation data yet.\n"
-            "Run a simulation and the charts will populate automatically."
+            "No simulation data available yet.\n"
+            "Run a simulation in Traffic Simulation panel to generate analytics curves."
         )
-        self._no_data.setAlignment(__import__("PyQt6.QtCore", fromlist=["Qt"]).Qt.AlignmentFlag.AlignCenter)
-        self._no_data.setStyleSheet("color: #555577; font-size: 11px;")
+        self._no_data.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._no_data.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 11px; padding: 20px;")
         layout.addWidget(self._no_data)
 
     # ------------------------------------------------------------------
@@ -89,11 +93,6 @@ class AnalyticsPanel(QWidget):
 
     def load_snapshots(self, snapshots: list,
                        queue_history: Dict[str, list] = None) -> None:
-        """
-        Called after simulation completes.
-        snapshots: list of SimulationTickSnapshot
-        queue_history: {link_id: List[QueueSample]}
-        """
         self._snapshots = snapshots
         self._queue_history = queue_history or {}
         if snapshots:
@@ -119,10 +118,10 @@ class AnalyticsPanel(QWidget):
         times, values = self._extract_series(snapshots, "throughput")
         self._canvas_throughput.plot_line(
             times, values,
-            title="Throughput vs Time",
+            title="Throughput vs Simulation Time",
             xlabel="Simulation Time (ms)",
             ylabel="Throughput (Mbps)",
-            color="#4A90D9",
+            color=ACCENT_EMERALD,
             label="Throughput"
         )
 
@@ -130,10 +129,10 @@ class AnalyticsPanel(QWidget):
         times, values = self._extract_series(snapshots, "latency")
         self._canvas_latency.plot_line(
             times, values,
-            title="Average Latency vs Time",
+            title="Average Latency vs Simulation Time",
             xlabel="Simulation Time (ms)",
             ylabel="Latency (ms)",
-            color="#E8A838",
+            color=ACCENT_ORANGE,
             label="Avg Latency"
         )
 
@@ -141,10 +140,10 @@ class AnalyticsPanel(QWidget):
         times, values = self._extract_series(snapshots, "loss")
         self._canvas_loss.plot_line(
             times, values,
-            title="Packet Loss % vs Time",
+            title="Packet Loss % vs Simulation Time",
             xlabel="Simulation Time (ms)",
             ylabel="Packet Loss (%)",
-            color="#CC3333",
+            color=ACCENT_CORAL,
             label="Loss %"
         )
 
@@ -152,10 +151,10 @@ class AnalyticsPanel(QWidget):
         times, values = self._extract_series(snapshots, "pdr")
         self._canvas_pdr.plot_line(
             times, values,
-            title="Packet Delivery Ratio vs Time",
+            title="Packet Delivery Ratio vs Simulation Time",
             xlabel="Simulation Time (ms)",
             ylabel="PDR (%)",
-            color="#5CB85C",
+            color=ACCENT_EMERALD,
             label="PDR %"
         )
 
@@ -164,7 +163,7 @@ class AnalyticsPanel(QWidget):
         if not queue_history:
             return
 
-        colors = ["#4A90D9", "#E8A838", "#CC3333", "#5CB85C", "#AA55CC", "#55CCAA"]
+        colors = [ACCENT_EMERALD, ACCENT_ORANGE, ACCENT_CORAL, "#34D399", "#F59E0B", "#D97706"]
         series = []
         for i, (link_id, samples) in enumerate(queue_history.items()):
             if samples:
@@ -176,7 +175,7 @@ class AnalyticsPanel(QWidget):
         if series:
             self._canvas_queue.plot_multi_line(
                 series,
-                title="Queue Depth vs Time",
+                title="Queue Depth vs Simulation Time",
                 xlabel="Simulation Time (ms)",
                 ylabel="Queue Depth (packets)"
             )
@@ -186,7 +185,6 @@ class AnalyticsPanel(QWidget):
     # ------------------------------------------------------------------
 
     def _extract_series(self, snapshots: list, metric: str):
-        """Extracts (times, values) from a snapshot list for a given metric."""
         times, values = [], []
         prev_sent = 0
         prev_del = 0
@@ -201,7 +199,6 @@ class AnalyticsPanel(QWidget):
 
             plr = (dropped / sent * 100.0) if sent > 0 else 0.0
 
-            # Instantaneous throughput
             interval_s = 0.05
             new_del = max(0, delivered - prev_del)
             tput = (new_del * 1024 * 8) / (interval_s * 1_000_000)

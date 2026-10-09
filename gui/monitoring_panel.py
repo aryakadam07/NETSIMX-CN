@@ -1,7 +1,6 @@
 """
-NetSimX — Live Monitoring Panel (Member 4)
-Consumes SimulationTickSnapshot via Qt signals.
-Never blocks the GUI thread.
+NetSimX — Live Monitoring Panel (Member 4 / Redesign)
+Consumes SimulationTickSnapshot via Qt signals in charcoal & emerald styling.
 """
 
 from collections import deque
@@ -14,9 +13,13 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSlot
 from PyQt6.QtGui import QFont
 
+from gui.styles import (
+    MAIN_BG, CARD_BG, CONTAINER_BG, BORDER_COLOR, TEXT_PRIMARY,
+    TEXT_SECONDARY, ACCENT_EMERALD, ACCENT_ORANGE, ACCENT_CORAL,
+    get_groupbox_stylesheet, get_text_edit_stylesheet
+)
 from gui.widgets.metric_card import MetricCard
 from analytics.metrics import MetricsCalculator
-from visualization.packet_visualizer import PacketVisualizer
 
 
 class MonitoringPanel(QWidget):
@@ -40,23 +43,23 @@ class MonitoringPanel(QWidget):
     # ------------------------------------------------------------------
 
     def _setup_ui(self) -> None:
-        self.setStyleSheet("background: #1A1A2A; color: #CCCCDD;")
+        self.setStyleSheet(f"background-color: {MAIN_BG}; color: {TEXT_PRIMARY};")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(10)
 
-        title = QLabel("Live Network Monitor")
+        title = QLabel("Live Simulation Telemetry & Queue Monitor")
         tf = QFont(); tf.setPointSize(14); tf.setBold(True)
-        title.setFont(tf); title.setStyleSheet("color: #EEEEFF;")
+        title.setFont(tf); title.setStyleSheet(f"color: {TEXT_PRIMARY};")
         layout.addWidget(title)
 
-        self._status_lbl = QLabel("⬤ IDLE — Start a simulation to see live data")
-        self._status_lbl.setStyleSheet("color: #9999BB; font-size: 10px;")
+        self._status_lbl = QLabel("● IDLE — Start a simulation to stream live telemetry")
+        self._status_lbl.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 11px;")
         layout.addWidget(self._status_lbl)
 
         # ── Live metrics cards ─────────────────────────────────────────
-        cards_group = QGroupBox("Live Metrics")
-        cards_group.setStyleSheet(self._group_style())
+        cards_group = QGroupBox("Real-Time KPI Stream")
+        cards_group.setStyleSheet(get_groupbox_stylesheet())
         cards_row = QHBoxLayout(cards_group)
         cards_row.setSpacing(8)
 
@@ -77,27 +80,24 @@ class MonitoringPanel(QWidget):
         layout.addWidget(cards_group)
 
         # ── Queue depths ───────────────────────────────────────────────
-        queue_group = QGroupBox("Interface Queue Depths")
-        queue_group.setStyleSheet(self._group_style())
+        queue_group = QGroupBox("Interface Queue Occupancy Depths")
+        queue_group.setStyleSheet(get_groupbox_stylesheet())
         queue_layout = QVBoxLayout(queue_group)
-        self._queue_label = QLabel("No queue data yet.")
+        self._queue_label = QLabel("No active queue data streamed yet.")
         self._queue_label.setStyleSheet(
-            "color: #8888AA; font-family: Consolas, monospace; font-size: 9px;")
+            f"color: {TEXT_SECONDARY}; font-family: 'Consolas', monospace; font-size: 11px;")
         self._queue_label.setWordWrap(True)
         queue_layout.addWidget(self._queue_label)
         layout.addWidget(queue_group)
 
         # ── Tick event log ─────────────────────────────────────────────
-        log_group = QGroupBox("Tick Event Log")
-        log_group.setStyleSheet(self._group_style())
+        log_group = QGroupBox("Tick Event & Packet Lifecycle Log")
+        log_group.setStyleSheet(get_groupbox_stylesheet())
         log_layout = QVBoxLayout(log_group)
         self._log = QTextEdit()
         self._log.setReadOnly(True)
         self._log.setMaximumHeight(200)
-        self._log.setStyleSheet(
-            "QTextEdit { background: #0A0A1A; color: #7799BB; "
-            "border: 1px solid #333355; font-family: Consolas, monospace; font-size: 9px; }"
-        )
+        self._log.setStyleSheet(get_text_edit_stylesheet(ACCENT_EMERALD))
         log_layout.addWidget(self._log)
         layout.addWidget(log_group)
 
@@ -108,21 +108,19 @@ class MonitoringPanel(QWidget):
         self._sim.simulation_finished.connect(self._on_finished)
 
     # ------------------------------------------------------------------
-    # Tick handler — called from main thread via Qt signal
+    # Tick handler
     # ------------------------------------------------------------------
 
     @pyqtSlot(object)
     def on_tick(self, snapshot) -> None:
-        """Updates all live metric cards from a SimulationTickSnapshot."""
         self._tick_count += 1
         m = MetricsCalculator.from_tick(snapshot, self._prev_snapshot)
         self._prev_snapshot = snapshot
 
         self._status_lbl.setText(
-            f"⬤ RUNNING — Tick #{self._tick_count} | "
-            f"Time: {m['timestamp_ms']:.0f} ms"
+            f"● RUNNING — Tick #{self._tick_count} | Time: {m['timestamp_ms']:.0f} ms"
         )
-        self._status_lbl.setStyleSheet("color: #5CB85C; font-size: 10px;")
+        self._status_lbl.setStyleSheet(f"color: {ACCENT_EMERALD}; font-size: 11px; font-weight: bold;")
 
         self._card_active.update_value(str(m["active_packets"]))
         self._card_delivered.update_value(str(m["packets_delivered"]))
@@ -133,7 +131,6 @@ class MonitoringPanel(QWidget):
         self._card_jitter.update_value(f"{m['jitter_ms']:.1f}")
         self._card_throughput.update_value(f"{m['throughput_mbps']:.2f}")
 
-        # Threshold alerts
         if m["plr_percent"] > 10:
             self._card_loss.set_status("critical")
         elif m["plr_percent"] > 5:
@@ -141,18 +138,15 @@ class MonitoringPanel(QWidget):
         else:
             self._card_loss.set_status("normal")
 
-        # Queue depths
         qd = m.get("queue_depths", {})
         if qd:
-            parts = [f"{lid}: {depth}" for lid, depth in qd.items()]
+            parts = [f"{lid}: {depth} pkts" for lid, depth in qd.items()]
             self._queue_label.setText("  |  ".join(parts))
 
-        # Events from this tick
         events = getattr(snapshot, "executed_events", [])
         for ev in events:
             self._log.append(f"[t={m['timestamp_ms']:.0f}ms] {ev}")
 
-        # Limit log size
         doc = self._log.document()
         while doc.blockCount() > self.MAX_LOG_LINES:
             cursor = self._log.textCursor()
@@ -163,12 +157,10 @@ class MonitoringPanel(QWidget):
 
     def _on_finished(self, stats) -> None:
         self._status_lbl.setText(
-            f"⬤ COMPLETED — "
-            f"Sent: {stats.packets_sent} | "
-            f"Delivered: {stats.packets_delivered} | "
-            f"Dropped: {stats.packets_dropped}"
+            f"● COMPLETED — Sent: {stats.packets_sent} | "
+            f"Delivered: {stats.packets_delivered} | Dropped: {stats.packets_dropped}"
         )
-        self._status_lbl.setStyleSheet("color: #4A90D9; font-size: 10px;")
+        self._status_lbl.setStyleSheet(f"color: {ACCENT_EMERALD}; font-size: 11px; font-weight: bold;")
 
     def start_monitoring(self) -> None:
         self._tick_count = 0
@@ -176,12 +168,3 @@ class MonitoringPanel(QWidget):
 
     def stop_monitoring(self) -> None:
         pass
-
-    # ------------------------------------------------------------------
-    # Style
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _group_style() -> str:
-        return ("QGroupBox { color: #AAAACC; border: 1px solid #444466; "
-                "border-radius: 6px; margin-top: 6px; padding-top: 10px; font-size: 10px; }")

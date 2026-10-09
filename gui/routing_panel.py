@@ -1,6 +1,6 @@
 """
-NetSimX — Routing Panel (Member 4)
-Calls Member 2's routing engine and displays the calculated path.
+NetSimX — Routing Panel (Member 4 / Redesign)
+Calls Member 2's routing engine and displays the calculated path in charcoal & emerald aesthetic.
 """
 
 from typing import List
@@ -11,6 +11,13 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
+
+from gui.styles import (
+    MAIN_BG, CARD_BG, CONTAINER_BG, BORDER_COLOR, TEXT_PRIMARY,
+    TEXT_SECONDARY, ACCENT_EMERALD, ACCENT_ORANGE, ACCENT_CORAL,
+    get_groupbox_stylesheet, get_input_stylesheet, get_button_stylesheet,
+    get_secondary_button_stylesheet, get_table_stylesheet, get_text_edit_stylesheet
+)
 
 
 class RoutingPanel(QWidget):
@@ -32,27 +39,27 @@ class RoutingPanel(QWidget):
     # ------------------------------------------------------------------
 
     def _setup_ui(self) -> None:
-        self.setStyleSheet("background: #1A1A2A; color: #CCCCDD;")
+        self.setStyleSheet(f"background-color: {MAIN_BG};")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(12)
 
-        title = QLabel("Route Calculator")
+        title = QLabel("Routing Algorithms & Path Calculation")
         tf = QFont(); tf.setPointSize(14); tf.setBold(True)
-        title.setFont(tf); title.setStyleSheet("color: #EEEEFF;")
+        title.setFont(tf); title.setStyleSheet(f"color: {TEXT_PRIMARY};")
         layout.addWidget(title)
 
         # ── Controls ──────────────────────────────────────────────────
         ctrl_group = QGroupBox("Route Configuration")
-        ctrl_group.setStyleSheet(self._group_style())
+        ctrl_group.setStyleSheet(get_groupbox_stylesheet())
         ctrl_layout = QVBoxLayout(ctrl_group)
-        ctrl_layout.setSpacing(8)
+        ctrl_layout.setSpacing(10)
 
         def _row(label_text, widget):
             row = QHBoxLayout()
             lbl = QLabel(label_text)
-            lbl.setMinimumWidth(100)
-            lbl.setStyleSheet("color: #9999BB; font-size: 10px;")
+            lbl.setMinimumWidth(110)
+            lbl.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 11px;")
             row.addWidget(lbl)
             row.addWidget(widget)
             row.addStretch()
@@ -63,52 +70,51 @@ class RoutingPanel(QWidget):
         self._algo_combo = QComboBox()
 
         for w in [self._src_combo, self._dst_combo, self._algo_combo]:
-            w.setStyleSheet(self._combo_style())
-            w.setMinimumWidth(180)
+            w.setStyleSheet(get_input_stylesheet())
+            w.setMinimumWidth(200)
 
         self._algo_combo.addItems(self._routing.get_available_algorithms())
 
-        ctrl_layout.addLayout(_row("Source:", self._src_combo))
-        ctrl_layout.addLayout(_row("Destination:", self._dst_combo))
-        ctrl_layout.addLayout(_row("Algorithm:", self._algo_combo))
+        ctrl_layout.addLayout(_row("Source Node:", self._src_combo))
+        ctrl_layout.addLayout(_row("Destination Node:", self._dst_combo))
+        ctrl_layout.addLayout(_row("Routing Algorithm:", self._algo_combo))
 
         calc_btn = QPushButton("▶  Calculate Route")
-        calc_btn.setStyleSheet(self._btn_style("#4A90D9"))
+        calc_btn.setStyleSheet(get_button_stylesheet(ACCENT_EMERALD, "#101010"))
         calc_btn.clicked.connect(self._calculate)
         ctrl_layout.addWidget(calc_btn)
 
         layout.addWidget(ctrl_group)
 
         # ── Result ────────────────────────────────────────────────────
-        res_group = QGroupBox("Route Result")
-        res_group.setStyleSheet(self._group_style())
+        res_group = QGroupBox("Route Calculation Result")
+        res_group.setStyleSheet(get_groupbox_stylesheet())
         res_layout = QVBoxLayout(res_group)
 
         self._result_text = QTextEdit()
         self._result_text.setReadOnly(True)
-        self._result_text.setMinimumHeight(100)
-        self._result_text.setMaximumHeight(140)
-        self._result_text.setStyleSheet(
-            "QTextEdit { background: #12121E; color: #AAFFAA; "
-            "border: 1px solid #333355; border-radius: 4px; font-family: Consolas, monospace; font-size: 10px; }"
-        )
+        self._result_text.setMinimumHeight(110)
+        self._result_text.setMaximumHeight(150)
+        self._result_text.setStyleSheet(get_text_edit_stylesheet(ACCENT_EMERALD))
         res_layout.addWidget(self._result_text)
         layout.addWidget(res_group)
 
         # ── Routing table ─────────────────────────────────────────────
-        rt_group = QGroupBox("Routing Table (selected router)")
-        rt_group.setStyleSheet(self._group_style())
+        rt_group = QGroupBox("Router Routing Table Inspector")
+        rt_group.setStyleSheet(get_groupbox_stylesheet())
         rt_layout = QVBoxLayout(rt_group)
 
         rt_header_row = QHBoxLayout()
-        rt_lbl = QLabel("Router:")
-        rt_lbl.setStyleSheet("color: #9999BB; font-size: 10px;")
+        rt_lbl = QLabel("Target Router:")
+        rt_lbl.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 11px;")
         self._router_combo = QComboBox()
-        self._router_combo.setStyleSheet(self._combo_style())
-        self._router_combo.setMinimumWidth(140)
+        self._router_combo.setStyleSheet(get_input_stylesheet())
+        self._router_combo.setMinimumWidth(160)
+
         show_rt_btn = QPushButton("Show Table")
-        show_rt_btn.setStyleSheet(self._btn_style("#555577"))
+        show_rt_btn.setStyleSheet(get_secondary_button_stylesheet())
         show_rt_btn.clicked.connect(self._show_routing_table)
+
         rt_header_row.addWidget(rt_lbl)
         rt_header_row.addWidget(self._router_combo)
         rt_header_row.addWidget(show_rt_btn)
@@ -121,7 +127,7 @@ class RoutingPanel(QWidget):
             ["Destination", "Next Hop", "Metric", "Interface", "Protocol"])
         self._rt_table.horizontalHeader().setSectionResizeMode(
             QHeaderView.ResizeMode.Stretch)
-        self._rt_table.setStyleSheet(self._table_style())
+        self._rt_table.setStyleSheet(get_table_stylesheet())
         self._rt_table.setAlternatingRowColors(True)
         self._rt_table.setMaximumHeight(200)
         rt_layout.addWidget(self._rt_table)
@@ -143,7 +149,6 @@ class RoutingPanel(QWidget):
         if len(node_ids) > 1:
             self._dst_combo.setCurrentIndex(len(node_ids) - 1)
 
-        # Populate router combo with only routers
         routers = [n["id"] for n in self._topo.get_nodes()
                    if n["type"] == "ROUTER"]
         self._router_combo.addItems(routers if routers else node_ids)
@@ -178,11 +183,7 @@ class RoutingPanel(QWidget):
                 f"HOPS:         {result['hops']}\n"
                 f"NEXT HOP:     {result['next_hop']}\n"
             )
-            self._result_text.setStyleSheet(
-                "QTextEdit { background: #0A1A0A; color: #55FF77; "
-                "border: 1px solid #226622; border-radius: 4px; "
-                "font-family: Consolas, monospace; font-size: 10px; }"
-            )
+            self._result_text.setStyleSheet(get_text_edit_stylesheet(ACCENT_EMERALD))
         else:
             text = (
                 f"SOURCE:       {src}\n"
@@ -192,11 +193,7 @@ class RoutingPanel(QWidget):
                 f"STATUS:       UNREACHABLE\n"
                 f"REASON:       {result.get('error', 'No route available')}\n"
             )
-            self._result_text.setStyleSheet(
-                "QTextEdit { background: #1A0A0A; color: #FF7755; "
-                "border: 1px solid #662222; border-radius: 4px; "
-                "font-family: Consolas, monospace; font-size: 10px; }"
-            )
+            self._result_text.setStyleSheet(get_text_edit_stylesheet(ACCENT_CORAL))
 
         self._result_text.setPlainText(text)
 
@@ -221,34 +218,3 @@ class RoutingPanel(QWidget):
             self._rt_table.setItem(i, 2, QTableWidgetItem(f"{row['metric']:.1f}"))
             self._rt_table.setItem(i, 3, QTableWidgetItem(row["interface"]))
             self._rt_table.setItem(i, 4, QTableWidgetItem(row["protocol"]))
-
-    # ------------------------------------------------------------------
-    # Styles
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _group_style() -> str:
-        return ("QGroupBox { color: #AAAACC; border: 1px solid #444466; "
-                "border-radius: 6px; margin-top: 6px; padding-top: 10px; font-size: 10px; }")
-
-    @staticmethod
-    def _combo_style() -> str:
-        return ("QComboBox { background: #2A2A3E; color: #CCCCDD; "
-                "border: 1px solid #444466; border-radius: 4px; padding: 3px 8px; font-size: 10px; }"
-                "QComboBox::drop-down { border: none; }"
-                "QComboBox QAbstractItemView { background: #2A2A3E; color: #CCCCDD; }")
-
-    @staticmethod
-    def _btn_style(bg: str) -> str:
-        return (f"QPushButton {{ background: {bg}; color: #FFFFFF; "
-                "border: none; border-radius: 4px; padding: 6px 16px; font-size: 10px; font-weight: bold; }"
-                "QPushButton:hover { opacity: 0.85; }"
-                "QPushButton:pressed { opacity: 0.7; }")
-
-    @staticmethod
-    def _table_style() -> str:
-        return ("QTableWidget { background: #12121E; color: #CCCCDD; "
-                "border: 1px solid #333355; gridline-color: #2A2A3E; font-size: 9px; }"
-                "QHeaderView::section { background: #2A2A3E; color: #9999BB; "
-                "border: none; padding: 4px; font-size: 9px; }"
-                "QTableWidget::item:alternate { background: #1A1A2E; }")

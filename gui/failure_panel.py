@@ -1,6 +1,6 @@
 """
-NetSimX — Failure Simulation Panel (Member 4)
-Controls for injecting node and link failures using Member 3's FailureManager.
+NetSimX — Failure Simulation Panel (Member 4 / Redesign)
+Controls for injecting node and link failures using Member 3's FailureManager in charcoal & emerald.
 """
 
 from PyQt6.QtWidgets import (
@@ -9,6 +9,13 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QFont
+
+from gui.styles import (
+    MAIN_BG, CARD_BG, CONTAINER_BG, BORDER_COLOR, TEXT_PRIMARY,
+    TEXT_SECONDARY, ACCENT_EMERALD, ACCENT_ORANGE, ACCENT_CORAL,
+    get_groupbox_stylesheet, get_input_stylesheet, get_button_stylesheet,
+    get_secondary_button_stylesheet, get_danger_button_stylesheet, get_text_edit_stylesheet
+)
 
 
 class FailurePanel(QWidget):
@@ -31,25 +38,25 @@ class FailurePanel(QWidget):
     # ------------------------------------------------------------------
 
     def _setup_ui(self) -> None:
-        self.setStyleSheet("background: #1A1A2A; color: #CCCCDD;")
+        self.setStyleSheet(f"background-color: {MAIN_BG};")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(12)
 
-        title = QLabel("Failure Simulation")
+        title = QLabel("Fault Injection & Failover Recovery Studio")
         tf = QFont(); tf.setPointSize(14); tf.setBold(True)
-        title.setFont(tf); title.setStyleSheet("color: #EEEEFF;")
+        title.setFont(tf); title.setStyleSheet(f"color: {TEXT_PRIMARY};")
         layout.addWidget(title)
 
         # ── Target type ───────────────────────────────────────────────
-        type_group = QGroupBox("Target Type")
-        type_group.setStyleSheet(self._group_style())
+        type_group = QGroupBox("Target Selection Mode")
+        type_group.setStyleSheet(get_groupbox_stylesheet())
         type_row = QHBoxLayout(type_group)
-        self._node_radio = QRadioButton("Node / Router")
-        self._link_radio = QRadioButton("Link")
+        self._node_radio = QRadioButton("Node / Router Fault")
+        self._link_radio = QRadioButton("Link Fault")
         self._node_radio.setChecked(True)
         for r in [self._node_radio, self._link_radio]:
-            r.setStyleSheet("color: #CCCCDD; font-size: 10px;")
+            r.setStyleSheet(f"color: {TEXT_PRIMARY}; font-size: 11px;")
         self._btn_group = QButtonGroup()
         self._btn_group.addButton(self._node_radio, 0)
         self._btn_group.addButton(self._link_radio, 1)
@@ -60,15 +67,15 @@ class FailurePanel(QWidget):
         layout.addWidget(type_group)
 
         # ── Target selection ──────────────────────────────────────────
-        tgt_group = QGroupBox("Target Selection")
-        tgt_group.setStyleSheet(self._group_style())
+        tgt_group = QGroupBox("Target Component Selection")
+        tgt_group.setStyleSheet(get_groupbox_stylesheet())
         tgt_layout = QHBoxLayout(tgt_group)
-        tgt_lbl = QLabel("Target:")
-        tgt_lbl.setStyleSheet("color: #9999BB; font-size: 10px;")
-        tgt_lbl.setMinimumWidth(60)
+        tgt_lbl = QLabel("Component:")
+        tgt_lbl.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 11px;")
+        tgt_lbl.setMinimumWidth(80)
         self._target_combo = QComboBox()
-        self._target_combo.setMinimumWidth(200)
-        self._target_combo.setStyleSheet(self._combo_style())
+        self._target_combo.setMinimumWidth(220)
+        self._target_combo.setStyleSheet(get_input_stylesheet())
         tgt_layout.addWidget(tgt_lbl)
         tgt_layout.addWidget(self._target_combo)
         tgt_layout.addStretch()
@@ -76,16 +83,16 @@ class FailurePanel(QWidget):
 
         # ── Action buttons ────────────────────────────────────────────
         btn_row = QHBoxLayout()
-        self._fail_btn = QPushButton("⚡  Inject Failure")
-        self._fail_btn.setStyleSheet(self._btn_style("#8B2222"))
+        self._fail_btn = QPushButton("⚡  Inject Fault")
+        self._fail_btn.setStyleSheet(get_danger_button_stylesheet())
         self._fail_btn.clicked.connect(self._inject_failure)
 
-        self._restore_btn = QPushButton("✓  Restore")
-        self._restore_btn.setStyleSheet(self._btn_style("#226622"))
+        self._restore_btn = QPushButton("✓  Restore Component")
+        self._restore_btn.setStyleSheet(get_button_stylesheet(ACCENT_EMERALD, "#101010"))
         self._restore_btn.clicked.connect(self._restore)
 
-        self._restore_all_btn = QPushButton("Restore All")
-        self._restore_all_btn.setStyleSheet(self._btn_style("#334455"))
+        self._restore_all_btn = QPushButton("Restore All Network Faults")
+        self._restore_all_btn.setStyleSheet(get_button_stylesheet(ACCENT_ORANGE, "#101010"))
         self._restore_all_btn.clicked.connect(self._restore_all)
 
         btn_row.addWidget(self._fail_btn)
@@ -95,26 +102,24 @@ class FailurePanel(QWidget):
         layout.addLayout(btn_row)
 
         # ── Status display ────────────────────────────────────────────
-        status_group = QGroupBox("Current Failures")
-        status_group.setStyleSheet(self._group_style())
+        status_group = QGroupBox("Active Fault Status")
+        status_group.setStyleSheet(get_groupbox_stylesheet())
         status_layout = QVBoxLayout(status_group)
 
-        self._status_label = QLabel("No active failures.")
-        self._status_label.setStyleSheet("color: #5CB85C; font-size: 10px;")
+        self._status_label = QLabel("No active network failures.")
+        self._status_label.setStyleSheet(f"color: {ACCENT_EMERALD}; font-size: 11px; font-weight: bold;")
         self._status_label.setWordWrap(True)
         status_layout.addWidget(self._status_label)
         layout.addWidget(status_group)
 
         # ── Event log ─────────────────────────────────────────────────
-        log_group = QGroupBox("Event Log")
-        log_group.setStyleSheet(self._group_style())
+        log_group = QGroupBox("Fault Event Audit Console")
+        log_group.setStyleSheet(get_groupbox_stylesheet())
         log_layout = QVBoxLayout(log_group)
         self._log = QTextEdit()
         self._log.setReadOnly(True)
         self._log.setMaximumHeight(160)
-        self._log.setStyleSheet(
-            "QTextEdit { background: #0A0A1A; color: #FFAA55; "
-            "border: 1px solid #333355; font-family: Consolas, monospace; font-size: 9px; }")
+        self._log.setStyleSheet(get_text_edit_stylesheet(ACCENT_ORANGE))
         log_layout.addWidget(self._log)
         layout.addWidget(log_group)
 
@@ -152,7 +157,7 @@ class FailurePanel(QWidget):
             ftype = "LINK"
 
         if ok:
-            self._log_msg(f"FAILURE INJECTED: {ftype} '{target}' → OFFLINE")
+            self._log_msg(f"FAULT INJECTED: {ftype} '{target}' → OFFLINE")
             if self._topology_view:
                 if ftype == "NODE":
                     self._topology_view.update_node_status(target, False)
@@ -211,35 +216,12 @@ class FailurePanel(QWidget):
             parts.append(f"Failed links: {', '.join(fl)}")
         if parts:
             self._status_label.setText("\n".join(parts))
-            self._status_label.setStyleSheet("color: #FF7755; font-size: 10px;")
+            self._status_label.setStyleSheet(f"color: {ACCENT_CORAL}; font-size: 11px; font-weight: bold;")
         else:
-            self._status_label.setText("No active failures.")
-            self._status_label.setStyleSheet("color: #5CB85C; font-size: 10px;")
+            self._status_label.setText("No active network failures.")
+            self._status_label.setStyleSheet(f"color: {ACCENT_EMERALD}; font-size: 11px; font-weight: bold;")
 
     def _log_msg(self, msg: str) -> None:
         from datetime import datetime
         ts = datetime.now().strftime("%H:%M:%S")
         self._log.append(f"[{ts}] {msg}")
-
-    # ------------------------------------------------------------------
-    # Styles
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _group_style() -> str:
-        return ("QGroupBox { color: #AAAACC; border: 1px solid #444466; "
-                "border-radius: 6px; margin-top: 6px; padding-top: 10px; font-size: 10px; }")
-
-    @staticmethod
-    def _combo_style() -> str:
-        return ("QComboBox { background: #2A2A3E; color: #CCCCDD; "
-                "border: 1px solid #444466; border-radius: 4px; padding: 3px 8px; font-size: 10px; }"
-                "QComboBox::drop-down { border: none; }"
-                "QComboBox QAbstractItemView { background: #2A2A3E; color: #CCCCDD; }")
-
-    @staticmethod
-    def _btn_style(bg: str) -> str:
-        return (f"QPushButton {{ background: {bg}; color: #FFFFFF; "
-                "border: none; border-radius: 4px; padding: 7px 16px; "
-                "font-size: 10px; font-weight: bold; }}"
-                "QPushButton:hover { opacity: 0.85; }")

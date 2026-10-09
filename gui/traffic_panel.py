@@ -1,6 +1,6 @@
 """
-NetSimX — Traffic Simulation Panel (Member 4)
-Controls for configuring and starting/stopping simulations using Member 3's engine.
+NetSimX — Traffic Simulation Panel (Member 4 / Redesign)
+Controls for configuring and starting/stopping simulations in charcoal & emerald.
 """
 
 from PyQt6.QtWidgets import (
@@ -9,6 +9,13 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
+
+from gui.styles import (
+    MAIN_BG, CARD_BG, CONTAINER_BG, BORDER_COLOR, TEXT_PRIMARY,
+    TEXT_SECONDARY, ACCENT_EMERALD, ACCENT_ORANGE, ACCENT_CORAL,
+    get_groupbox_stylesheet, get_input_stylesheet, get_button_stylesheet,
+    get_secondary_button_stylesheet, get_danger_button_stylesheet, get_text_edit_stylesheet
+)
 
 
 class TrafficPanel(QWidget):
@@ -33,68 +40,64 @@ class TrafficPanel(QWidget):
     # ------------------------------------------------------------------
 
     def _setup_ui(self) -> None:
-        self.setStyleSheet("background: #1A1A2A; color: #CCCCDD;")
+        self.setStyleSheet(f"background-color: {MAIN_BG};")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(12)
 
-        title = QLabel("Traffic Simulation")
+        title = QLabel("Traffic Simulation Engine")
         tf = QFont(); tf.setPointSize(14); tf.setBold(True)
-        title.setFont(tf); title.setStyleSheet("color: #EEEEFF;")
+        title.setFont(tf); title.setStyleSheet(f"color: {TEXT_PRIMARY};")
         layout.addWidget(title)
 
         # ── Config group ──────────────────────────────────────────────
-        cfg_group = QGroupBox("Simulation Configuration")
-        cfg_group.setStyleSheet(self._group_style())
+        cfg_group = QGroupBox("Simulation Profile & Packet Controls")
+        cfg_group.setStyleSheet(get_groupbox_stylesheet())
         cfg_layout = QVBoxLayout(cfg_group)
-        cfg_layout.setSpacing(8)
+        cfg_layout.setSpacing(10)
 
         def _row(lbl_text, widget):
             row = QHBoxLayout()
             lbl = QLabel(lbl_text)
-            lbl.setMinimumWidth(120)
-            lbl.setStyleSheet("color: #9999BB; font-size: 10px;")
+            lbl.setMinimumWidth(130)
+            lbl.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 11px;")
             row.addWidget(lbl)
             row.addWidget(widget)
             row.addStretch()
             return row
 
-        self._src_combo = QComboBox(); self._src_combo.setMinimumWidth(160)
-        self._dst_combo = QComboBox(); self._dst_combo.setMinimumWidth(160)
-        self._algo_combo = QComboBox(); self._algo_combo.setMinimumWidth(160)
-        self._level_combo = QComboBox(); self._level_combo.setMinimumWidth(160)
+        self._src_combo = QComboBox(); self._src_combo.setMinimumWidth(180)
+        self._dst_combo = QComboBox(); self._dst_combo.setMinimumWidth(180)
+        self._algo_combo = QComboBox(); self._algo_combo.setMinimumWidth(180)
+        self._level_combo = QComboBox(); self._level_combo.setMinimumWidth(180)
         self._count_spin = QSpinBox(); self._count_spin.setRange(10, 5000)
         self._count_spin.setValue(100); self._count_spin.setSingleStep(50)
         self._size_spin = QSpinBox(); self._size_spin.setRange(64, 9000)
         self._size_spin.setValue(1024); self._size_spin.setSingleStep(512)
 
-        for w in [self._src_combo, self._dst_combo, self._algo_combo, self._level_combo]:
-            w.setStyleSheet(self._combo_style())
-
-        for w in [self._count_spin, self._size_spin]:
-            w.setStyleSheet("QSpinBox { background: #2A2A3E; color: #CCCCDD; "
-                            "border: 1px solid #444466; border-radius: 4px; padding: 3px; }")
+        for w in [self._src_combo, self._dst_combo, self._algo_combo, self._level_combo, self._count_spin, self._size_spin]:
+            w.setStyleSheet(get_input_stylesheet())
 
         self._algo_combo.addItems(["Dijkstra", "Bellman-Ford", "Distance Vector"])
         self._level_combo.addItems(["LOW", "MEDIUM", "HIGH", "CUSTOM"])
         self._level_combo.currentTextChanged.connect(self._on_level_changed)
 
-        cfg_layout.addLayout(_row("Source:", self._src_combo))
-        cfg_layout.addLayout(_row("Destination:", self._dst_combo))
-        cfg_layout.addLayout(_row("Algorithm:", self._algo_combo))
-        cfg_layout.addLayout(_row("Traffic Level:", self._level_combo))
+        cfg_layout.addLayout(_row("Source Node:", self._src_combo))
+        cfg_layout.addLayout(_row("Destination Node:", self._dst_combo))
+        cfg_layout.addLayout(_row("Routing Algorithm:", self._algo_combo))
+        cfg_layout.addLayout(_row("Traffic Preset:", self._level_combo))
         cfg_layout.addLayout(_row("Packet Count:", self._count_spin))
-        cfg_layout.addLayout(_row("Packet Size (bytes):", self._size_spin))
+        cfg_layout.addLayout(_row("Packet Size (Bytes):", self._size_spin))
         layout.addWidget(cfg_group)
 
         # ── Control buttons ───────────────────────────────────────────
         btn_row = QHBoxLayout()
         self._start_btn = QPushButton("▶  Start Simulation")
-        self._start_btn.setStyleSheet(self._btn_style("#3A7A3A"))
+        self._start_btn.setStyleSheet(get_button_stylesheet(ACCENT_EMERALD, "#101010"))
         self._start_btn.clicked.connect(self._start)
 
-        self._stop_btn = QPushButton("■  Stop")
-        self._stop_btn.setStyleSheet(self._btn_style("#7A2A2A"))
+        self._stop_btn = QPushButton("■  Stop Simulation")
+        self._stop_btn.setStyleSheet(get_danger_button_stylesheet())
         self._stop_btn.setEnabled(False)
         self._stop_btn.clicked.connect(self._stop)
 
@@ -105,19 +108,17 @@ class TrafficPanel(QWidget):
 
         # ── Status ────────────────────────────────────────────────────
         self._status_label = QLabel("Status: IDLE")
-        self._status_label.setStyleSheet("color: #9999BB; font-size: 10px;")
+        self._status_label.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 11px;")
         layout.addWidget(self._status_label)
 
         # ── Log ───────────────────────────────────────────────────────
-        log_group = QGroupBox("Simulation Log")
-        log_group.setStyleSheet(self._group_style())
+        log_group = QGroupBox("Live Simulation Console Log")
+        log_group.setStyleSheet(get_groupbox_stylesheet())
         log_layout = QVBoxLayout(log_group)
         self._log = QTextEdit()
         self._log.setReadOnly(True)
         self._log.setMaximumHeight(150)
-        self._log.setStyleSheet(
-            "QTextEdit { background: #0A0A1A; color: #88AACC; "
-            "border: 1px solid #333355; font-family: Consolas, monospace; font-size: 9px; }")
+        self._log.setStyleSheet(get_text_edit_stylesheet(ACCENT_EMERALD))
         log_layout.addWidget(self._log)
         layout.addWidget(log_group)
 
@@ -171,7 +172,7 @@ class TrafficPanel(QWidget):
         self._start_btn.setEnabled(False)
         self._stop_btn.setEnabled(True)
         self._status_label.setText("Status: RUNNING")
-        self._status_label.setStyleSheet("color: #5CB85C; font-size: 10px; font-weight: bold;")
+        self._status_label.setStyleSheet(f"color: {ACCENT_EMERALD}; font-size: 11px; font-weight: bold;")
         self._log_msg(f"Simulation started: {src} → {dst} [{self._algo_combo.currentText()}]")
         self.simulation_started.emit()
 
@@ -180,18 +181,18 @@ class TrafficPanel(QWidget):
         self._start_btn.setEnabled(True)
         self._stop_btn.setEnabled(False)
         self._status_label.setText("Status: STOPPED")
-        self._status_label.setStyleSheet("color: #FF7755; font-size: 10px;")
+        self._status_label.setStyleSheet(f"color: {ACCENT_CORAL}; font-size: 11px;")
         self._log_msg("Simulation stopped by user.")
         self.simulation_stopped.emit()
 
     def _on_tick(self, snapshot) -> None:
-        pass  # Handled by MonitoringPanel / DashboardPanel
+        pass
 
     def _on_finished(self, stats) -> None:
         self._start_btn.setEnabled(True)
         self._stop_btn.setEnabled(False)
         self._status_label.setText("Status: COMPLETED")
-        self._status_label.setStyleSheet("color: #4A90D9; font-size: 10px; font-weight: bold;")
+        self._status_label.setStyleSheet(f"color: {ACCENT_EMERALD}; font-size: 11px; font-weight: bold;")
         self._log_msg(
             f"Complete — Sent: {stats.packets_sent} | "
             f"Delivered: {stats.packets_delivered} | "
@@ -204,34 +205,10 @@ class TrafficPanel(QWidget):
         self._start_btn.setEnabled(True)
         self._stop_btn.setEnabled(False)
         self._status_label.setText("Status: ERROR")
-        self._status_label.setStyleSheet("color: #CC3333; font-size: 10px;")
+        self._status_label.setStyleSheet(f"color: {ACCENT_CORAL}; font-size: 11px;")
         self._log_msg(f"ERROR: {msg}")
 
     def _log_msg(self, msg: str) -> None:
         from datetime import datetime
         ts = datetime.now().strftime("%H:%M:%S")
         self._log.append(f"[{ts}] {msg}")
-
-    # ------------------------------------------------------------------
-    # Styles
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _group_style() -> str:
-        return ("QGroupBox { color: #AAAACC; border: 1px solid #444466; "
-                "border-radius: 6px; margin-top: 6px; padding-top: 10px; font-size: 10px; }")
-
-    @staticmethod
-    def _combo_style() -> str:
-        return ("QComboBox { background: #2A2A3E; color: #CCCCDD; "
-                "border: 1px solid #444466; border-radius: 4px; padding: 3px 8px; font-size: 10px; }"
-                "QComboBox::drop-down { border: none; }"
-                "QComboBox QAbstractItemView { background: #2A2A3E; color: #CCCCDD; }")
-
-    @staticmethod
-    def _btn_style(bg: str) -> str:
-        return (f"QPushButton {{ background: {bg}; color: #FFFFFF; "
-                "border: none; border-radius: 4px; padding: 8px 20px; "
-                "font-size: 10px; font-weight: bold; }"
-                "QPushButton:disabled { background: #333344; color: #666677; }"
-                "QPushButton:hover:enabled { opacity: 0.85; }")
