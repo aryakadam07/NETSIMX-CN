@@ -92,11 +92,11 @@ class TrafficPanel(QWidget):
 
         # ── Control buttons ───────────────────────────────────────────
         btn_row = QHBoxLayout()
-        self._start_btn = QPushButton("▶  Start Simulation")
+        self._start_btn = QPushButton("Start Simulation")
         self._start_btn.setStyleSheet(get_button_stylesheet(ACCENT_EMERALD, "#101010"))
         self._start_btn.clicked.connect(self._start)
 
-        self._stop_btn = QPushButton("■  Stop Simulation")
+        self._stop_btn = QPushButton("Stop Simulation")
         self._stop_btn.setStyleSheet(get_danger_button_stylesheet())
         self._stop_btn.setEnabled(False)
         self._stop_btn.clicked.connect(self._stop)

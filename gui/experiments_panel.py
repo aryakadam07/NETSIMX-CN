@@ -59,12 +59,12 @@ class ExperimentsPanel(QWidget):
 
         # Action buttons
         btn_row = QHBoxLayout()
-        self._refresh_btn  = QPushButton("⟳ Refresh")
-        self._view_btn     = QPushButton("👁 View Metrics")
-        self._compare_btn  = QPushButton("⚖ Compare Selected")
-        self._export_csv_btn = QPushButton("📄 Export CSV")
-        self._export_json_btn = QPushButton("{ } Export JSON")
-        self._delete_btn   = QPushButton("🗑 Delete")
+        self._refresh_btn  = QPushButton("Refresh")
+        self._view_btn     = QPushButton("View Metrics")
+        self._compare_btn  = QPushButton("Compare Selected")
+        self._export_csv_btn = QPushButton("Export CSV")
+        self._export_json_btn = QPushButton("Export JSON")
+        self._delete_btn   = QPushButton("Delete")
 
         for btn in [self._refresh_btn, self._view_btn, self._compare_btn,
                     self._export_csv_btn, self._export_json_btn]:

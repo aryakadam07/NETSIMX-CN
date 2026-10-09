@@ -54,16 +54,16 @@ class MainWindow(QMainWindow):
     APP_TITLE = "NETSIMX — Network Simulation & Performance Analysis Studio"
 
     PAGES = [
-        ("🏠", "Dashboard", "Overview metrics, topology summary & live alerts"),
-        ("🗺", "Network Topology", "Interactive network canvas & layout design"),
-        ("🔀", "Routing Algorithms", "Dijkstra, Bellman-Ford & Distance Vector analysis"),
-        ("📡", "Traffic Simulation", "Discrete-event packet generator & traffic profiles"),
-        ("⚡", "Failure & Recovery", "Fault injection, interface shutdown & failover rerouting"),
-        ("📊", "Live Monitor", "Real-time packet stream & interface queue occupancy"),
-        ("📈", "Performance Analytics", "Matplotlib throughput, latency, loss & queue charts"),
-        ("🗄", "Experiment History", "SQLite experiment repository & side-by-side comparison"),
-        ("📦", "Packet Tracer Labs", "Cisco Packet Tracer lab manual suite & IOS runbooks"),
-        ("⚙️", "Settings & About", "System architecture specs & 4-member ownership matrix"),
+        ("", "Dashboard", "Overview metrics, topology summary & live alerts"),
+        ("", "Network Topology", "Interactive network canvas & layout design"),
+        ("", "Routing Algorithms", "Dijkstra, Bellman-Ford & Distance Vector analysis"),
+        ("", "Traffic Simulation", "Discrete-event packet generator & traffic profiles"),
+        ("", "Failure & Recovery", "Fault injection, interface shutdown & failover rerouting"),
+        ("", "Live Monitor", "Real-time packet stream & interface queue occupancy"),
+        ("", "Performance Analytics", "Matplotlib throughput, latency, loss & queue charts"),
+        ("", "Experiment History", "SQLite experiment repository & side-by-side comparison"),
+        ("", "Packet Tracer Labs", "Cisco Packet Tracer lab manual suite & IOS runbooks"),
+        ("", "Settings & About", "System architecture specs & 4-member ownership matrix"),
     ]
 
     def __init__(self):
@@ -124,7 +124,7 @@ class MainWindow(QMainWindow):
         logo_v = QVBoxLayout(logo_frame)
         logo_v.setContentsMargins(4, 0, 4, 8)
 
-        logo_lbl = QLabel("⬡ NETSIMX")
+        logo_lbl = QLabel("NETSIMX")
         logo_font = QFont(); logo_font.setPointSize(15); logo_font.setBold(True)
         logo_lbl.setFont(logo_font)
         logo_lbl.setStyleSheet(f"color: {ACCENT_EMERALD}; letter-spacing: 1px;")
@@ -171,7 +171,8 @@ class MainWindow(QMainWindow):
         """)
 
         for icon, title, _ in self.PAGES:
-            item = QListWidgetItem(f"{icon}  {title}")
+            label_text = f"{icon}  {title}".strip() if icon else title
+            item = QListWidgetItem(label_text)
             self._nav_list.addItem(item)
 
         self._nav_list.currentRowChanged.connect(self._on_page_changed)
@@ -219,10 +220,10 @@ class MainWindow(QMainWindow):
         self._topo_badge = QLabel("Topology: CAMPUS_01")
         self._topo_badge.setStyleSheet(f"background: {CARD_BG}; color: {TEXT_PRIMARY}; border: 1px solid {BORDER_COLOR}; border-radius: 4px; padding: 4px 10px; font-size: 10px;")
 
-        self._sim_status_lbl = QLabel("● IDLE")
+        self._sim_status_lbl = QLabel("IDLE")
         self._sim_status_lbl.setStyleSheet(f"background: {CARD_BG}; color: {TEXT_SECONDARY}; border: 1px solid {BORDER_COLOR}; border-radius: 4px; padding: 4px 10px; font-size: 10px; font-weight: bold;")
 
-        self._header_action_btn = QPushButton("▶  Run Traffic Sim")
+        self._header_action_btn = QPushButton("Run Traffic Sim")
         self._header_action_btn.setStyleSheet(get_button_stylesheet(ACCENT_EMERALD, "#101010"))
         self._header_action_btn.clicked.connect(lambda: self._nav_list.setCurrentRow(3)) # Navigate to Traffic Sim
 
@@ -318,7 +319,7 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
 
     def _on_sim_started(self) -> None:
-        self._sim_status_lbl.setText("● RUNNING")
+        self._sim_status_lbl.setText("RUNNING")
         self._sim_status_lbl.setStyleSheet(f"background: {CARD_BG}; color: {ACCENT_EMERALD}; border: 1px solid {ACCENT_EMERALD}; border-radius: 4px; padding: 4px 10px; font-size: 10px; font-weight: bold;")
         self._dashboard.set_simulation_state("RUNNING")
         self._dashboard.reset_metrics()
@@ -326,13 +327,13 @@ class MainWindow(QMainWindow):
         self._update_status("Simulation running...")
 
     def _on_sim_stopped(self) -> None:
-        if self._sim_status_lbl.text() == "● RUNNING":
-            self._sim_status_lbl.setText("● IDLE")
+        if self._sim_status_lbl.text() == "RUNNING":
+            self._sim_status_lbl.setText("IDLE")
             self._sim_status_lbl.setStyleSheet(f"background: {CARD_BG}; color: {TEXT_SECONDARY}; border: 1px solid {BORDER_COLOR}; border-radius: 4px; padding: 4px 10px; font-size: 10px; font-weight: bold;")
 
     @pyqtSlot(object)
     def _on_simulation_finished(self, stats) -> None:
-        self._sim_status_lbl.setText("● COMPLETED")
+        self._sim_status_lbl.setText("COMPLETED")
         self._sim_status_lbl.setStyleSheet(f"background: {CARD_BG}; color: {ACCENT_EMERALD}; border: 1px solid {ACCENT_EMERALD}; border-radius: 4px; padding: 4px 10px; font-size: 10px; font-weight: bold;")
         self._dashboard.set_simulation_state("COMPLETED")
 

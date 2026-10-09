@@ -71,7 +71,7 @@ class DashboardPanel(QWidget):
         text_v.addWidget(sub)
 
         # Primary Action Button: Open Topology Studio
-        self._open_topo_btn = QPushButton("🗺  Open Topology Studio")
+        self._open_topo_btn = QPushButton("Open Topology Studio")
         self._open_topo_btn.setStyleSheet(get_button_stylesheet(ACCENT_EMERALD, "#101010"))
         self._open_topo_btn.clicked.connect(lambda: self.open_topology_requested.emit())
 

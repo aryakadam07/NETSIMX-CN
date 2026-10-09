@@ -79,7 +79,7 @@ class RoutingPanel(QWidget):
         ctrl_layout.addLayout(_row("Destination Node:", self._dst_combo))
         ctrl_layout.addLayout(_row("Routing Algorithm:", self._algo_combo))
 
-        calc_btn = QPushButton("▶  Calculate Route")
+        calc_btn = QPushButton("Calculate Route")
         calc_btn.setStyleSheet(get_button_stylesheet(ACCENT_EMERALD, "#101010"))
         calc_btn.clicked.connect(self._calculate)
         ctrl_layout.addWidget(calc_btn)

@@ -83,11 +83,11 @@ class FailurePanel(QWidget):
 
         # ── Action buttons ────────────────────────────────────────────
         btn_row = QHBoxLayout()
-        self._fail_btn = QPushButton("⚡  Inject Fault")
+        self._fail_btn = QPushButton("Inject Fault")
         self._fail_btn.setStyleSheet(get_danger_button_stylesheet())
         self._fail_btn.clicked.connect(self._inject_failure)
 
-        self._restore_btn = QPushButton("✓  Restore Component")
+        self._restore_btn = QPushButton("Restore Component")
         self._restore_btn.setStyleSheet(get_button_stylesheet(ACCENT_EMERALD, "#101010"))
         self._restore_btn.clicked.connect(self._restore)
 

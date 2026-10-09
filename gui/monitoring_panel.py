@@ -53,7 +53,7 @@ class MonitoringPanel(QWidget):
         title.setFont(tf); title.setStyleSheet(f"color: {TEXT_PRIMARY};")
         layout.addWidget(title)
 
-        self._status_lbl = QLabel("● IDLE — Start a simulation to stream live telemetry")
+        self._status_lbl = QLabel("IDLE — Start a simulation to stream live telemetry")
         self._status_lbl.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 11px;")
         layout.addWidget(self._status_lbl)
 
@@ -118,7 +118,7 @@ class MonitoringPanel(QWidget):
         self._prev_snapshot = snapshot
 
         self._status_lbl.setText(
-            f"● RUNNING — Tick #{self._tick_count} | Time: {m['timestamp_ms']:.0f} ms"
+            f"RUNNING — Tick #{self._tick_count} | Time: {m['timestamp_ms']:.0f} ms"
         )
         self._status_lbl.setStyleSheet(f"color: {ACCENT_EMERALD}; font-size: 11px; font-weight: bold;")
 
@@ -157,7 +157,7 @@ class MonitoringPanel(QWidget):
 
     def _on_finished(self, stats) -> None:
         self._status_lbl.setText(
-            f"● COMPLETED — Sent: {stats.packets_sent} | "
+            f"COMPLETED — Sent: {stats.packets_sent} | "
             f"Delivered: {stats.packets_delivered} | Dropped: {stats.packets_dropped}"
         )
         self._status_lbl.setStyleSheet(f"color: {ACCENT_EMERALD}; font-size: 11px; font-weight: bold;")

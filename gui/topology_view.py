@@ -78,12 +78,12 @@ class TopologyView(QWidget):
         tb_layout = QHBoxLayout(toolbar)
         tb_layout.setContentsMargins(12, 4, 12, 4)
 
-        lbl = QLabel("🗺  Network Topology Studio")
+        lbl = QLabel("Network Topology Studio")
         lbl.setStyleSheet(f"color: {ACCENT_EMERALD}; font-size: 11px; font-weight: bold;")
         tb_layout.addWidget(lbl)
         tb_layout.addStretch()
 
-        refresh_btn = QPushButton("⟳  Refresh")
+        refresh_btn = QPushButton("Refresh")
         refresh_btn.setStyleSheet(get_secondary_button_stylesheet())
         refresh_btn.clicked.connect(self.refresh_topology)
         tb_layout.addWidget(refresh_btn)
