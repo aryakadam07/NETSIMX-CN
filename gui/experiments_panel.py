@@ -1,6 +1,6 @@
 """
-NetSimX — Experiments Panel (Member 4)
-Experiment history, results viewing, comparison, and export.
+NetSimX — Experiments Panel (Member 4 / Redesign)
+Experiment history, results viewing, comparison, and export in charcoal & emerald styling.
 """
 
 import os
@@ -15,6 +15,12 @@ from PyQt6.QtGui import QFont
 
 from analytics.comparison import ExperimentComparator
 from database.models import ExperimentRecord, MetricsRecord
+from gui.styles import (
+    MAIN_BG, CARD_BG, CONTAINER_BG, BORDER_COLOR, TEXT_PRIMARY,
+    TEXT_SECONDARY, ACCENT_EMERALD, ACCENT_ORANGE, ACCENT_CORAL,
+    get_groupbox_stylesheet, get_table_stylesheet, get_text_edit_stylesheet,
+    get_secondary_button_stylesheet, get_danger_button_stylesheet, get_button_stylesheet
+)
 
 
 class ExperimentsPanel(QWidget):
@@ -36,34 +42,37 @@ class ExperimentsPanel(QWidget):
     # ------------------------------------------------------------------
 
     def _setup_ui(self) -> None:
-        self.setStyleSheet("background: #1A1A2A; color: #CCCCDD;")
+        self.setStyleSheet(f"background-color: {MAIN_BG}; color: {TEXT_PRIMARY};")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(10)
 
-        title = QLabel("Experiment History")
+        title = QLabel("Experiment History & Benchmarking")
         tf = QFont(); tf.setPointSize(14); tf.setBold(True)
-        title.setFont(tf); title.setStyleSheet("color: #EEEEFF;")
+        title.setFont(tf); title.setStyleSheet(f"color: {TEXT_PRIMARY};")
         layout.addWidget(title)
 
         # ── Experiment table ──────────────────────────────────────────
-        table_group = QGroupBox("Saved Experiments")
-        table_group.setStyleSheet(self._group_style())
+        table_group = QGroupBox("Saved Experiments Repository")
+        table_group.setStyleSheet(get_groupbox_stylesheet())
         table_layout = QVBoxLayout(table_group)
 
         # Action buttons
         btn_row = QHBoxLayout()
-        self._refresh_btn  = QPushButton("⟳ Refresh")
-        self._view_btn     = QPushButton("👁 View")
-        self._compare_btn  = QPushButton("⚖ Compare Selected")
-        self._export_csv_btn = QPushButton("📄 Export CSV")
-        self._export_json_btn = QPushButton("{ } Export JSON")
-        self._delete_btn   = QPushButton("🗑 Delete")
+        self._refresh_btn  = QPushButton("Refresh")
+        self._view_btn     = QPushButton("View Metrics")
+        self._compare_btn  = QPushButton("Compare Selected")
+        self._export_csv_btn = QPushButton("Export CSV")
+        self._export_json_btn = QPushButton("Export JSON")
+        self._delete_btn   = QPushButton("Delete")
 
         for btn in [self._refresh_btn, self._view_btn, self._compare_btn,
-                    self._export_csv_btn, self._export_json_btn, self._delete_btn]:
-            btn.setStyleSheet(self._btn_style())
+                    self._export_csv_btn, self._export_json_btn]:
+            btn.setStyleSheet(get_secondary_button_stylesheet())
             btn_row.addWidget(btn)
+
+        self._delete_btn.setStyleSheet(get_danger_button_stylesheet())
+        btn_row.addWidget(self._delete_btn)
         btn_row.addStretch()
         table_layout.addLayout(btn_row)
 
@@ -77,31 +86,29 @@ class ExperimentsPanel(QWidget):
             QHeaderView.ResizeMode.Stretch)
         self._exp_table.setSelectionBehavior(
             QTableWidget.SelectionBehavior.SelectRows)
-        self._exp_table.setStyleSheet(self._table_style())
+        self._exp_table.setStyleSheet(get_table_stylesheet())
         self._exp_table.setAlternatingRowColors(True)
         self._exp_table.setMinimumHeight(200)
         table_layout.addWidget(self._exp_table)
         layout.addWidget(table_group)
 
         # ── Detail view ───────────────────────────────────────────────
-        detail_group = QGroupBox("Experiment Details")
-        detail_group.setStyleSheet(self._group_style())
+        detail_group = QGroupBox("Experiment Metric Inspector")
+        detail_group.setStyleSheet(get_groupbox_stylesheet())
         detail_layout = QVBoxLayout(detail_group)
         self._detail_text = QTextEdit()
         self._detail_text.setReadOnly(True)
         self._detail_text.setMaximumHeight(150)
-        self._detail_text.setStyleSheet(
-            "QTextEdit { background: #0A0A1A; color: #AACCAA; "
-            "border: 1px solid #333355; font-family: Consolas, monospace; font-size: 9px; }")
+        self._detail_text.setStyleSheet(get_text_edit_stylesheet(ACCENT_EMERALD))
         detail_layout.addWidget(self._detail_text)
         layout.addWidget(detail_group)
 
         # ── Comparison table ──────────────────────────────────────────
-        cmp_group = QGroupBox("Side-by-Side Comparison")
-        cmp_group.setStyleSheet(self._group_style())
+        cmp_group = QGroupBox("Side-by-Side Algorithm Comparison")
+        cmp_group.setStyleSheet(get_groupbox_stylesheet())
         cmp_layout = QVBoxLayout(cmp_group)
         self._cmp_table = QTableWidget()
-        self._cmp_table.setStyleSheet(self._table_style())
+        self._cmp_table.setStyleSheet(get_table_stylesheet())
         self._cmp_table.setAlternatingRowColors(True)
         self._cmp_table.setMaximumHeight(160)
         cmp_layout.addWidget(self._cmp_table)
@@ -278,28 +285,3 @@ class ExperimentsPanel(QWidget):
             for eid in ids:
                 self._mgr.delete_experiment(eid)
             self.refresh_table()
-
-    # ------------------------------------------------------------------
-    # Styles
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _group_style() -> str:
-        return ("QGroupBox { color: #AAAACC; border: 1px solid #444466; "
-                "border-radius: 6px; margin-top: 6px; padding-top: 10px; font-size: 10px; }")
-
-    @staticmethod
-    def _btn_style() -> str:
-        return ("QPushButton { background: #2A2A3E; color: #CCCCDD; border: 1px solid #444466; "
-                "border-radius: 4px; padding: 5px 12px; font-size: 9px; }"
-                "QPushButton:hover { background: #3A3A5E; }"
-                "QPushButton:pressed { background: #4A4A6E; }")
-
-    @staticmethod
-    def _table_style() -> str:
-        return ("QTableWidget { background: #12121E; color: #CCCCDD; "
-                "border: 1px solid #333355; gridline-color: #2A2A3E; font-size: 9px; }"
-                "QHeaderView::section { background: #2A2A3E; color: #9999BB; "
-                "border: none; padding: 4px; font-size: 9px; }"
-                "QTableWidget::item:alternate { background: #1A1A2E; }"
-                "QTableWidget::item:selected { background: #3A3A6E; }")

@@ -1,6 +1,6 @@
 """
-NetSimX — Alert Widget (Member 4)
-Scrollable list of timestamped alert messages.
+NetSimX — Alert Widget (Member 4 / Redesign)
+Scrollable list of timestamped alert messages styled with dark charcoal & emerald accents.
 """
 
 from datetime import datetime
@@ -8,17 +8,19 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QLabel, QFrame
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
+from gui.styles import CARD_BG, SIDEBAR_BG, TEXT_PRIMARY, ACCENT_EMERALD, ACCENT_ORANGE, ACCENT_CORAL, ACCENT_AMBER
+
 
 class AlertWidget(QWidget):
-    """Displays a scrollable alert/event log."""
+    """Displays a scrollable alert/event log in charcoal & emerald theme."""
 
     MAX_ALERTS = 50
 
     LEVEL_STYLES = {
-        "info":     "color: #6699CC; background: #252535; border-left: 3px solid #4466AA;",
-        "warning":  "color: #FFAA33; background: #2A2510; border-left: 3px solid #FF8800;",
-        "critical": "color: #FF5555; background: #2A1010; border-left: 3px solid #CC2222;",
-        "success":  "color: #55CC77; background: #101A10; border-left: 3px solid #338833;",
+        "info":     f"color: {TEXT_PRIMARY}; background: #1C1C1C; border-left: 3px solid #888888;",
+        "warning":  f"color: {ACCENT_ORANGE}; background: #262015; border-left: 3px solid {ACCENT_ORANGE};",
+        "critical": f"color: {ACCENT_CORAL}; background: #261515; border-left: 3px solid {ACCENT_CORAL};",
+        "success":  f"color: {ACCENT_EMERALD}; background: #1B2615; border-left: 3px solid {ACCENT_EMERALD};",
     }
 
     def __init__(self, parent=None):
@@ -31,13 +33,13 @@ class AlertWidget(QWidget):
         self._scroll = QScrollArea()
         self._scroll.setWidgetResizable(True)
         self._scroll.setStyleSheet(
-            "QScrollArea { border: none; background: #1A1A2A; }"
+            f"QScrollArea {{ border: none; background: {CARD_BG}; }}"
         )
 
         self._container = QWidget()
         self._container_layout = QVBoxLayout(self._container)
         self._container_layout.setContentsMargins(4, 4, 4, 4)
-        self._container_layout.setSpacing(3)
+        self._container_layout.setSpacing(4)
         self._container_layout.addStretch()
 
         self._scroll.setWidget(self._container)
@@ -54,9 +56,9 @@ class AlertWidget(QWidget):
         label.setFont(font)
 
         style = self.LEVEL_STYLES.get(level, self.LEVEL_STYLES["info"])
-        label.setStyleSheet(f"QLabel {{ {style} padding: 4px 6px; border-radius: 3px; }}")
+        label.setStyleSheet(f"QLabel {{ {style} padding: 5px 8px; border-radius: 4px; }}")
 
-        # Insert before stretch (index = count - 1)
+        # Insert before stretch
         insert_pos = self._container_layout.count() - 1
         self._container_layout.insertWidget(insert_pos, label)
 

@@ -11,8 +11,7 @@ env/
 
 # Logs & Database runtime files
 logs/
-data/db/*.db-wal
-data/db/*.db-shm
+data/
 
 # IDE & OS files
 .vscode/

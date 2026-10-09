@@ -1,6 +1,6 @@
 """
-NetSimX — Topology View (Member 4)
-Interactive QGraphicsScene displaying nodes, links, status and route highlighting.
+NetSimX — Topology View (Member 4 / Redesign)
+Interactive QGraphicsScene displaying nodes, links, status and route highlighting in charcoal & emerald.
 """
 
 from typing import List, Dict, Optional
@@ -16,6 +16,10 @@ from PyQt6.QtGui import (
 )
 
 from visualization.topology_visualizer import TopologyVisualizer
+from gui.styles import (
+    MAIN_BG, SIDEBAR_BG, CARD_BG, BORDER_COLOR, TEXT_PRIMARY,
+    TEXT_SECONDARY, ACCENT_EMERALD, get_secondary_button_stylesheet
+)
 
 
 class ZoomableGraphicsView(QGraphicsView):
@@ -26,7 +30,7 @@ class ZoomableGraphicsView(QGraphicsView):
         self.setRenderHint(QPainter.RenderHint.Antialiasing)
         self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
-        self.setStyleSheet("background: #12121E; border: none;")
+        self.setStyleSheet(f"background: {MAIN_BG}; border: none;")
         self._zoom = 1.0
 
     def wheelEvent(self, event: QWheelEvent) -> None:
@@ -62,34 +66,30 @@ class TopologyView(QWidget):
     # ------------------------------------------------------------------
 
     def _setup_ui(self) -> None:
-        self.setStyleSheet("background: #12121E;")
+        self.setStyleSheet(f"background: {MAIN_BG};")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
         # Toolbar
         toolbar = QFrame()
-        toolbar.setStyleSheet("background: #1E1E2E; border-bottom: 1px solid #333355;")
-        toolbar.setMaximumHeight(36)
+        toolbar.setStyleSheet(f"background: {SIDEBAR_BG}; border-bottom: 1px solid {BORDER_COLOR};")
+        toolbar.setFixedHeight(40)
         tb_layout = QHBoxLayout(toolbar)
-        tb_layout.setContentsMargins(8, 4, 8, 4)
+        tb_layout.setContentsMargins(12, 4, 12, 4)
 
-        lbl = QLabel("Network Topology")
-        lbl.setStyleSheet("color: #AAAACC; font-size: 11px; font-weight: bold;")
+        lbl = QLabel("Network Topology Studio")
+        lbl.setStyleSheet(f"color: {ACCENT_EMERALD}; font-size: 11px; font-weight: bold;")
         tb_layout.addWidget(lbl)
         tb_layout.addStretch()
 
-        refresh_btn = QPushButton("⟳ Refresh")
-        refresh_btn.setStyleSheet(
-            "QPushButton { background: #2A2A3E; color: #9999CC; border: 1px solid #444466; "
-            "border-radius: 4px; padding: 2px 10px; font-size: 10px; }"
-            "QPushButton:hover { background: #3A3A5E; }"
-        )
+        refresh_btn = QPushButton("Refresh")
+        refresh_btn.setStyleSheet(get_secondary_button_stylesheet())
         refresh_btn.clicked.connect(self.refresh_topology)
         tb_layout.addWidget(refresh_btn)
 
         reset_btn = QPushButton("Reset Zoom")
-        reset_btn.setStyleSheet(refresh_btn.styleSheet())
+        reset_btn.setStyleSheet(get_secondary_button_stylesheet())
         reset_btn.clicked.connect(self._reset_zoom)
         tb_layout.addWidget(reset_btn)
 
@@ -97,7 +97,7 @@ class TopologyView(QWidget):
 
         # Scene and view
         self._scene = QGraphicsScene()
-        self._scene.setBackgroundBrush(QBrush(QColor("#12121E")))
+        self._scene.setBackgroundBrush(QBrush(QColor(MAIN_BG)))
         self._view = ZoomableGraphicsView(self._scene)
         layout.addWidget(self._view)
 
@@ -117,7 +117,7 @@ class TopologyView(QWidget):
 
         if not nodes:
             self._scene.addText("No topology loaded", QFont()).setDefaultTextColor(
-                QColor("#555577"))
+                QColor(TEXT_SECONDARY))
             return
 
         # Compute positions
@@ -142,10 +142,10 @@ class TopologyView(QWidget):
 
         ellipse = QGraphicsEllipseItem(x - r, y - r, 2 * r, 2 * r)
         ellipse.setBrush(QBrush(QColor(color)))
-        border_color = "#FFFFFF" if node["is_up"] else "#FF4444"
+        border_color = "#FFFFFF" if node["is_up"] else "#EF4444"
         ellipse.setPen(QPen(QColor(border_color), 1.5))
         ellipse.setZValue(2)
-        ellipse.setData(0, nid)  # store node_id
+        ellipse.setData(0, nid)
         ellipse.setToolTip(
             f"{node['name']} ({node['type']})\nIP: {node['ip']}\nStatus: {node['status']}")
 
@@ -157,10 +157,10 @@ class TopologyView(QWidget):
         icon = icon_map.get(node["type"], "?")
         icon_text = self._scene.addText(icon)
         icon_font = QFont()
-        icon_font.setPointSize(8)
+        icon_font.setPointSize(9)
         icon_font.setBold(True)
         icon_text.setFont(icon_font)
-        icon_text.setDefaultTextColor(QColor("#FFFFFF"))
+        icon_text.setDefaultTextColor(QColor("#101010" if node["is_up"] else "#FFFFFF"))
         icon_text.setPos(x - icon_text.boundingRect().width() / 2,
                          y - icon_text.boundingRect().height() / 2)
         icon_text.setZValue(3)
@@ -168,9 +168,10 @@ class TopologyView(QWidget):
         # Name label below node
         name_text = self._scene.addText(node["name"])
         name_font = QFont()
-        name_font.setPointSize(7)
+        name_font.setPointSize(8)
+        name_font.setWeight(QFont.Weight.Medium)
         name_text.setFont(name_font)
-        name_text.setDefaultTextColor(QColor("#CCCCDD"))
+        name_text.setDefaultTextColor(QColor(TEXT_PRIMARY))
         name_text.setPos(x - name_text.boundingRect().width() / 2, y + r + 2)
         name_text.setZValue(3)
         self._label_items[nid] = name_text
@@ -184,7 +185,7 @@ class TopologyView(QWidget):
 
         in_path = self._is_in_path(src, dst)
         color = TopologyVisualizer.link_color(link["is_up"], in_path)
-        width = 3.0 if in_path else (1.0 if link["is_up"] else 1.5)
+        width = 3.5 if in_path else (1.5 if link["is_up"] else 2.0)
         style = Qt.PenStyle.SolidLine if link["is_up"] else Qt.PenStyle.DashLine
 
         pen = QPen(QColor(color), width, style)
@@ -200,9 +201,9 @@ class TopologyView(QWidget):
         mx, my = (x1 + x2) / 2, (y1 + y2) / 2
         cost_text = self._scene.addText(f"{link['cost']:.0f}")
         cost_font = QFont()
-        cost_font.setPointSize(6)
+        cost_font.setPointSize(7)
         cost_text.setFont(cost_font)
-        cost_text.setDefaultTextColor(QColor("#666688"))
+        cost_text.setDefaultTextColor(QColor(TEXT_SECONDARY))
         cost_text.setPos(mx, my)
         cost_text.setZValue(1)
 
@@ -240,7 +241,7 @@ class TopologyView(QWidget):
             if node:
                 color = TopologyVisualizer.node_color(node["type"], is_up)
                 node_item.setBrush(QBrush(QColor(color)))
-                node_item.setPen(QPen(QColor("#FF4444" if not is_up else "#FFFFFF"), 1.5))
+                node_item.setPen(QPen(QColor("#EF4444" if not is_up else "#FFFFFF"), 1.5))
 
     def update_link_status(self, link_id: str, is_up: bool) -> None:
         """Updates a link's visual style without full redraw."""

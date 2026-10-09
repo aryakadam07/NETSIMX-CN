@@ -1,17 +1,18 @@
 """
-NetSimX — Metric Card Widget (Member 4)
-A styled card displaying a single KPI: title, large value, unit.
+NetSimX — Metric Card Widget (Member 4 / Redesign)
+A styled KPI card displaying title, large metric value, and unit in charcoal & emerald.
 """
 
 from PyQt6.QtWidgets import QFrame, QVBoxLayout, QLabel
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
+from gui.styles import CARD_BG, BORDER_COLOR, TEXT_PRIMARY, TEXT_SECONDARY, ACCENT_EMERALD, ACCENT_ORANGE, ACCENT_CORAL
+
 
 class MetricCard(QFrame):
     """
-    Compact stat card:
-
+    Compact KPI stat card:
     ┌─────────────────┐
     │  Packets Sent   │
     │      4521       │
@@ -19,21 +20,33 @@ class MetricCard(QFrame):
     └─────────────────┘
     """
 
-    STYLE_NORMAL = (
-        "QFrame { background: #2A2A3E; border: 1px solid #444466; border-radius: 8px; }"
-    )
-    STYLE_WARNING = (
-        "QFrame { background: #3A2A1E; border: 1px solid #AA7700; border-radius: 8px; }"
-    )
-    STYLE_CRITICAL = (
-        "QFrame { background: #3A1E1E; border: 1px solid #CC3333; border-radius: 8px; }"
-    )
+    STYLE_NORMAL = f"""
+    QFrame {{
+        background-color: {CARD_BG};
+        border: 1px solid {BORDER_COLOR};
+        border-radius: 8px;
+    }}
+    """
+    STYLE_WARNING = f"""
+    QFrame {{
+        background-color: #262015;
+        border: 1px solid {ACCENT_ORANGE};
+        border-radius: 8px;
+    }}
+    """
+    STYLE_CRITICAL = f"""
+    QFrame {{
+        background-color: #261515;
+        border: 1px solid {ACCENT_CORAL};
+        border-radius: 8px;
+    }}
+    """
 
     def __init__(self, title: str, value: str = "—",
                  unit: str = "", parent=None):
         super().__init__(parent)
-        self.setMinimumSize(130, 90)
-        self.setMaximumSize(200, 110)
+        self.setMinimumSize(125, 88)
+        self.setMaximumSize(190, 105)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(10, 8, 10, 8)
@@ -44,17 +57,18 @@ class MetricCard(QFrame):
         self._title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title_font = QFont()
         title_font.setPointSize(8)
+        title_font.setWeight(QFont.Weight.Medium)
         self._title_label.setFont(title_font)
-        self._title_label.setStyleSheet("color: #9999BB; background: transparent; border: none;")
+        self._title_label.setStyleSheet(f"color: {TEXT_SECONDARY}; background: transparent; border: none;")
 
         # Value
         self._value_label = QLabel(value)
         self._value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         value_font = QFont()
-        value_font.setPointSize(18)
+        value_font.setPointSize(17)
         value_font.setBold(True)
         self._value_label.setFont(value_font)
-        self._value_label.setStyleSheet("color: #FFFFFF; background: transparent; border: none;")
+        self._value_label.setStyleSheet(f"color: {TEXT_PRIMARY}; background: transparent; border: none;")
 
         # Unit
         self._unit_label = QLabel(unit)
@@ -62,7 +76,7 @@ class MetricCard(QFrame):
         unit_font = QFont()
         unit_font.setPointSize(7)
         self._unit_label.setFont(unit_font)
-        self._unit_label.setStyleSheet("color: #7777AA; background: transparent; border: none;")
+        self._unit_label.setStyleSheet("color: #777777; background: transparent; border: none;")
 
         layout.addWidget(self._title_label)
         layout.addWidget(self._value_label)
@@ -80,7 +94,10 @@ class MetricCard(QFrame):
         """status: 'normal' | 'warning' | 'critical'"""
         if status == "warning":
             self.setStyleSheet(self.STYLE_WARNING)
+            self._value_label.setStyleSheet(f"color: {ACCENT_ORANGE}; background: transparent; border: none;")
         elif status == "critical":
             self.setStyleSheet(self.STYLE_CRITICAL)
+            self._value_label.setStyleSheet(f"color: {ACCENT_CORAL}; background: transparent; border: none;")
         else:
             self.setStyleSheet(self.STYLE_NORMAL)
+            self._value_label.setStyleSheet(f"color: {TEXT_PRIMARY}; background: transparent; border: none;")
